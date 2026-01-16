@@ -1,0 +1,55 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Enums\FulfillmentType;
+use App\Enums\ProposalStatus;
+use App\Models\Enseigne;
+use App\Models\LunchDay;
+use App\Models\LunchDayProposal;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<LunchDayProposal>
+ */
+class LunchDayProposalFactory extends Factory
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'lunch_day_id' => LunchDay::factory(),
+            'enseigne_id' => Enseigne::factory(),
+            'fulfillment_type' => fake()->randomElement(FulfillmentType::cases()),
+            'runner_user_id' => null,
+            'orderer_user_id' => null,
+            'platform' => fake()->optional()->word(),
+            'status' => ProposalStatus::Open,
+            'provider_message_ts' => (string) fake()->unixTime().'.000000',
+            'created_by_provider_user_id' => 'U'.fake()->regexify('[A-Z0-9]{10}'),
+        ];
+    }
+
+    public function withRunner(string $userId): static
+    {
+        return $this->state(fn () => [
+            'runner_user_id' => $userId,
+            'status' => ProposalStatus::Ordering,
+        ]);
+    }
+
+    public function withOrderer(string $userId): static
+    {
+        return $this->state(fn () => [
+            'orderer_user_id' => $userId,
+            'status' => ProposalStatus::Ordering,
+        ]);
+    }
+
+    public function ordering(): static
+    {
+        return $this->state(fn () => ['status' => ProposalStatus::Ordering]);
+    }
+}

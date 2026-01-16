@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\LunchDayStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LunchDay extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'date',
         'provider',
@@ -26,5 +29,20 @@ class LunchDay extends Model
     public function proposals(): HasMany
     {
         return $this->hasMany(LunchDayProposal::class);
+    }
+
+    public function isOpen(): bool
+    {
+        return $this->status === LunchDayStatus::Open;
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->status === LunchDayStatus::Locked;
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->status === LunchDayStatus::Closed;
     }
 }

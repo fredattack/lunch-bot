@@ -2,7 +2,6 @@
 
 namespace App\Slack;
 
-use App\Actions\Lunch\AdjustOrderPrice;
 use App\Actions\Lunch\AssignRole;
 use App\Actions\Lunch\CloseLunchDay;
 use App\Actions\Lunch\CreateEnseigne;
@@ -12,7 +11,6 @@ use App\Actions\Lunch\ProposeRestaurant;
 use App\Actions\Lunch\UpdateEnseigne;
 use App\Actions\Lunch\UpdateOrder;
 use App\Enums\FulfillmentType;
-use App\Enums\LunchDayStatus;
 use App\Models\Enseigne;
 use App\Models\LunchDay;
 use App\Models\LunchDayProposal;
@@ -33,7 +31,6 @@ class SlackInteractionHandler
         private readonly DelegateRole $delegateRole,
         private readonly CreateOrder $createOrder,
         private readonly UpdateOrder $updateOrder,
-        private readonly AdjustOrderPrice $adjustOrderPrice,
         private readonly CreateEnseigne $createEnseigne,
         private readonly UpdateEnseigne $updateEnseigne
     ) {}
@@ -251,7 +248,7 @@ class SlackInteractionHandler
             return response('', 200);
         }
 
-        if ($day->status !== LunchDayStatus::Open) {
+        if (! $day->isOpen()) {
             $this->messenger->postEphemeral($day->provider_channel_id, $userId, 'Les commandes sont verrouillees.');
 
             return response('', 200);
@@ -365,8 +362,17 @@ class SlackInteractionHandler
             return $data;
         }
 
+        $existingOrder = Order::query()
+            ->where('lunch_day_proposal_id', $proposal->id)
+            ->where('provider_user_id', $userId)
+            ->first();
+
         try {
-            $this->createOrder->handle($proposal, $userId, $data);
+            if ($existingOrder) {
+                $this->updateOrder->handle($existingOrder, $data, $userId);
+            } else {
+                $this->createOrder->handle($proposal, $userId, $data);
+            }
             $this->messenger->updateProposalMessage($proposal);
             $this->postOptionalFeedback($payload, $userId, 'Commande enregistree.');
         } catch (InvalidArgumentException $e) {
@@ -384,7 +390,7 @@ class SlackInteractionHandler
             return response('', 200);
         }
 
-        if ($proposal->lunchDay->status === LunchDayStatus::Closed) {
+        if ($proposal->lunchDay->isClosed()) {
             $this->messenger->postEphemeral($proposal->lunchDay->provider_channel_id, $userId, 'La journee est cloturee.');
 
             return response('', 200);
@@ -399,7 +405,7 @@ class SlackInteractionHandler
         }
 
         $allowFinal = $this->isRunnerOrOrderer($proposal, $userId) || $this->messenger->isAdmin($userId);
-        if ($proposal->lunchDay->status !== LunchDayStatus::Open && ! $allowFinal) {
+        if (! $proposal->lunchDay->isOpen() && ! $allowFinal) {
             $this->messenger->postEphemeral($proposal->lunchDay->provider_channel_id, $userId, 'Les commandes sont verrouillees.');
 
             return response('', 200);
@@ -453,7 +459,7 @@ class SlackInteractionHandler
             return response('', 200);
         }
 
-        if ($proposal->lunchDay->status === LunchDayStatus::Closed) {
+        if ($proposal->lunchDay->isClosed()) {
             return response('', 200);
         }
 
@@ -474,7 +480,7 @@ class SlackInteractionHandler
             return response('', 200);
         }
 
-        $this->adjustOrderPrice->handle($order, $priceFinal, $userId);
+        $this->updateOrder->handle($order, ['price_final' => $priceFinal], $userId);
         $this->messenger->updateProposalMessage($proposal);
         $this->postOptionalFeedback($payload, $userId, 'Prix final mis a jour.');
 
@@ -487,7 +493,7 @@ class SlackInteractionHandler
             return false;
         }
 
-        if ($day->status !== LunchDayStatus::Open) {
+        if (! $day->isOpen()) {
             $this->messenger->postEphemeral($channelId, $userId, 'Les commandes sont verrouillees.');
 
             return false;
@@ -557,19 +563,12 @@ class SlackInteractionHandler
 
     private function isRunnerOrOrderer(LunchDayProposal $proposal, string $userId): bool
     {
-        return $proposal->runner_user_id === $userId || $proposal->orderer_user_id === $userId;
+        return $proposal->hasRole($userId);
     }
 
     private function roleForUser(LunchDayProposal $proposal, string $userId): ?string
     {
-        if ($proposal->runner_user_id === $userId) {
-            return 'runner';
-        }
-        if ($proposal->orderer_user_id === $userId) {
-            return 'orderer';
-        }
-
-        return null;
+        return $proposal->getRoleFor($userId);
     }
 
     private function stateValue(array $state, string $blockId, string $actionId): ?string

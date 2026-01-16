@@ -34,16 +34,29 @@ class UpdateOrder
         foreach ($data as $key => $value) {
             $current = $order->{$key};
 
-            if (is_float($value) && $current !== null) {
-                $current = (float) $current;
-            }
-
-            if ($current !== $value) {
-                $changes[$key] = ['from' => $order->{$key}, 'to' => $value];
+            if ($this->hasChanged($current, $value)) {
+                $changes[$key] = ['from' => $current, 'to' => $value];
             }
         }
 
         return $changes;
+    }
+
+    private function hasChanged(mixed $current, mixed $value): bool
+    {
+        if ($current === $value) {
+            return false;
+        }
+
+        if (is_numeric($current) && is_numeric($value)) {
+            return bccomp((string) $current, (string) $value, 4) !== 0;
+        }
+
+        if ($current === null || $value === null) {
+            return true;
+        }
+
+        return $current !== $value;
     }
 
     private function appendAuditLog(Order $order, string $actorId, array $changes): void

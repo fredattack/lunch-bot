@@ -3,7 +3,6 @@
 namespace App\Actions\Lunch;
 
 use App\Enums\FulfillmentType;
-use App\Enums\LunchDayStatus;
 use App\Enums\ProposalStatus;
 use App\Models\Enseigne;
 use App\Models\LunchDay;
@@ -19,7 +18,7 @@ class ProposeRestaurant
         ?string $platform,
         string $createdByUserId
     ): LunchDayProposal {
-        if ($day->status !== LunchDayStatus::Open) {
+        if (! $day->isOpen()) {
             throw new InvalidArgumentException('Lunch day is not open.');
         }
 

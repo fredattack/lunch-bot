@@ -12,7 +12,7 @@ class AssignRole
     {
         $field = $role === 'runner' ? 'runner_user_id' : 'orderer_user_id';
 
-        return (bool) DB::transaction(function () use ($proposal, $field, $userId) {
+        $success = DB::transaction(function () use ($proposal, $field, $userId): bool {
             $locked = LunchDayProposal::query()
                 ->whereKey($proposal->id)
                 ->lockForUpdate()
@@ -26,9 +26,13 @@ class AssignRole
             $locked->status = ProposalStatus::Ordering;
             $locked->save();
 
-            $proposal->refresh();
-
             return true;
         });
+
+        if ($success) {
+            $proposal->refresh();
+        }
+
+        return $success;
     }
 }

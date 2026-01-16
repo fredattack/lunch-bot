@@ -4,12 +4,15 @@ namespace App\Models;
 
 use App\Enums\FulfillmentType;
 use App\Enums\ProposalStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LunchDayProposal extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'lunch_day_id',
         'enseigne_id',
@@ -40,5 +43,33 @@ class LunchDayProposal extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function hasRole(string $userId): bool
+    {
+        return $this->runner_user_id === $userId || $this->orderer_user_id === $userId;
+    }
+
+    public function getRoleFor(string $userId): ?string
+    {
+        if ($this->runner_user_id === $userId) {
+            return 'runner';
+        }
+
+        if ($this->orderer_user_id === $userId) {
+            return 'orderer';
+        }
+
+        return null;
+    }
+
+    public function isRunner(string $userId): bool
+    {
+        return $this->runner_user_id === $userId;
+    }
+
+    public function isOrderer(string $userId): bool
+    {
+        return $this->orderer_user_id === $userId;
     }
 }

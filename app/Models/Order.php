@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Order extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'lunch_day_proposal_id',
         'provider_user_id',
@@ -26,5 +29,10 @@ class Order extends Model
     public function proposal(): BelongsTo
     {
         return $this->belongsTo(LunchDayProposal::class, 'lunch_day_proposal_id');
+    }
+
+    public function lunchDayProposal(): BelongsTo
+    {
+        return $this->proposal();
     }
 }
