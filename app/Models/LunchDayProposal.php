@@ -18,8 +18,8 @@ class LunchDayProposal extends Model
         'orderer_user_id',
         'platform',
         'status',
-        'slack_message_ts',
-        'created_by_slack_user_id',
+        'provider_message_ts',
+        'created_by_provider_user_id',
     ];
 
     protected $casts = [

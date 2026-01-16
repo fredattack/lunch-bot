@@ -9,7 +9,7 @@ class Order extends Model
 {
     protected $fillable = [
         'lunch_day_proposal_id',
-        'slack_user_id',
+        'provider_user_id',
         'description',
         'price_estimated',
         'price_final',

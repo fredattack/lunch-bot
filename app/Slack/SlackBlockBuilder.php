@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Slack;
 
 use App\Enums\FulfillmentType;
 use App\Models\Enseigne;
@@ -88,14 +88,14 @@ class SlackBlockBuilder
         foreach ($orders as $order) {
             $final = $order->price_final !== null ? number_format((float) $order->price_final, 2) : '-';
             $estimated = number_format((float) $order->price_estimated, 2);
-            $lines[] = "- <@{$order->slack_user_id}>: {$order->description} (est: {$estimated}, final: {$final})";
+            $lines[] = "- <@{$order->provider_user_id}>: {$order->description} (est: {$estimated}, final: {$final})";
         }
 
         if (empty($lines)) {
             $lines[] = '- Aucune commande pour le moment.';
         }
 
-        $text = "*Recapitulatif*\n" . implode("\n", $lines);
+        $text = "*Recapitulatif*\n".implode("\n", $lines);
         $text .= "\n\nTotal estime: {$totals['estimated']} | Total final: {$totals['final']}";
 
         return [
@@ -210,7 +210,7 @@ class SlackBlockBuilder
             'blocks' => $this->enseigneBlocks(),
         ];
 
-        if (!empty($metadata)) {
+        if (! empty($metadata)) {
             $modal['private_metadata'] = json_encode($metadata, JSON_THROW_ON_ERROR);
         }
 
@@ -219,7 +219,7 @@ class SlackBlockBuilder
 
     public function editEnseigneModal(Enseigne $enseigne, array $metadata = []): array
     {
-        $modal = [
+        return [
             'type' => 'modal',
             'callback_id' => SlackActions::CALLBACK_ENSEIGNE_UPDATE,
             'private_metadata' => json_encode(array_merge(['enseigne_id' => $enseigne->id], $metadata), JSON_THROW_ON_ERROR),
@@ -267,8 +267,6 @@ class SlackBlockBuilder
                 ],
             ]),
         ];
-
-        return $modal;
     }
 
     public function orderModal(LunchDayProposal $proposal, ?Order $order, bool $allowFinal, bool $isEdit): array
@@ -401,9 +399,9 @@ class SlackBlockBuilder
         $options = array_map(function (Order $order) {
             $label = $order->description;
             if (strlen($label) > 50) {
-                $label = substr($label, 0, 47) . '...';
+                $label = substr($label, 0, 47).'...';
             }
-            $text = "<@{$order->slack_user_id}> - {$label}";
+            $text = "<@{$order->provider_user_id}> - {$label}";
 
             return [
                 'text' => [

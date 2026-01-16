@@ -10,8 +10,9 @@ class LunchDay extends Model
 {
     protected $fillable = [
         'date',
-        'slack_channel_id',
-        'slack_message_ts',
+        'provider',
+        'provider_channel_id',
+        'provider_message_ts',
         'deadline_at',
         'status',
     ];

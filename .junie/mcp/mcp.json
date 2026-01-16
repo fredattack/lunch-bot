@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "/Users/fred/.config/herd-lite/bin/php",
+            "args": [
+                "/Users/fred/PhpstormProjects/lunch-bot/artisan",
+                "boost:mcp"
+            ]
+        }
+    }
+}

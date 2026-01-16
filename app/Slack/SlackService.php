@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Slack;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -89,25 +89,27 @@ class SlackService
     {
         $token = config('slack.bot_token');
 
-        if (!$token) {
+        if (! $token) {
             Log::error('Slack bot token missing.');
+
             return ['ok' => false, 'error' => 'missing_token'];
         }
 
-        $response = $this->client($token)->post('https://slack.com/api/' . $method, $payload);
+        $response = $this->client($token)->post('https://slack.com/api/'.$method, $payload);
 
-        if (!$response->ok()) {
+        if (! $response->ok()) {
             Log::error('Slack API HTTP error.', [
                 'method' => $method,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
+
             return ['ok' => false, 'error' => 'http_error'];
         }
 
         $data = $response->json();
 
-        if (!($data['ok'] ?? false)) {
+        if (! ($data['ok'] ?? false)) {
             Log::warning('Slack API error.', [
                 'method' => $method,
                 'error' => $data['error'] ?? 'unknown',

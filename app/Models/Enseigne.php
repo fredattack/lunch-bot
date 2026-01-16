@@ -12,7 +12,7 @@ class Enseigne extends Model
         'url_menu',
         'notes',
         'active',
-        'created_by_slack_user_id',
+        'created_by_provider_user_id',
     ];
 
     protected $casts = [
