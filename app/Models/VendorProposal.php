@@ -9,13 +9,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class LunchDayProposal extends Model
+class VendorProposal extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'lunch_day_id',
-        'enseigne_id',
+        'lunch_session_id',
+        'vendor_id',
         'fulfillment_type',
         'runner_user_id',
         'orderer_user_id',
@@ -30,14 +30,14 @@ class LunchDayProposal extends Model
         'status' => ProposalStatus::class,
     ];
 
-    public function lunchDay(): BelongsTo
+    public function lunchSession(): BelongsTo
     {
-        return $this->belongsTo(LunchDay::class);
+        return $this->belongsTo(LunchSession::class);
     }
 
-    public function enseigne(): BelongsTo
+    public function vendor(): BelongsTo
     {
-        return $this->belongsTo(Enseigne::class);
+        return $this->belongsTo(Vendor::class);
     }
 
     public function orders(): HasMany

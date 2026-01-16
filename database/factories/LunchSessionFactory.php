@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
-use App\Enums\LunchDayStatus;
-use App\Models\LunchDay;
+use App\Enums\LunchSessionStatus;
+use App\Models\LunchSession;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<LunchDay>
+ * @extends Factory<LunchSession>
  */
-class LunchDayFactory extends Factory
+class LunchSessionFactory extends Factory
 {
     /**
      * @return array<string, mixed>
@@ -22,22 +22,22 @@ class LunchDayFactory extends Factory
             'provider_channel_id' => 'C'.fake()->regexify('[A-Z0-9]{10}'),
             'provider_message_ts' => (string) fake()->unixTime().'.000000',
             'deadline_at' => fake()->dateTimeBetween('now', '+1 week'),
-            'status' => LunchDayStatus::Open,
+            'status' => LunchSessionStatus::Open,
         ];
     }
 
     public function open(): static
     {
-        return $this->state(fn () => ['status' => LunchDayStatus::Open]);
+        return $this->state(fn () => ['status' => LunchSessionStatus::Open]);
     }
 
     public function locked(): static
     {
-        return $this->state(fn () => ['status' => LunchDayStatus::Locked]);
+        return $this->state(fn () => ['status' => LunchSessionStatus::Locked]);
     }
 
     public function closed(): static
     {
-        return $this->state(fn () => ['status' => LunchDayStatus::Closed]);
+        return $this->state(fn () => ['status' => LunchSessionStatus::Closed]);
     }
 }

@@ -2,11 +2,11 @@
 
 namespace App\Actions\Lunch;
 
-use App\Models\LunchDayProposal;
+use App\Models\VendorProposal;
 
 class DelegateRole
 {
-    public function handle(LunchDayProposal $proposal, string $role, string $fromUserId, string $toUserId): bool
+    public function handle(VendorProposal $proposal, string $role, string $fromUserId, string $toUserId): bool
     {
         $field = $role === 'runner' ? 'runner_user_id' : 'orderer_user_id';
 

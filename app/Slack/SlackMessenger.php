@@ -2,9 +2,9 @@
 
 namespace App\Slack;
 
-use App\Models\LunchDay;
-use App\Models\LunchDayProposal;
+use App\Models\LunchSession;
 use App\Models\Order;
+use App\Models\VendorProposal;
 use Illuminate\Support\Collection;
 
 class SlackMessenger
@@ -14,35 +14,35 @@ class SlackMessenger
         private readonly SlackBlockBuilder $blocks
     ) {}
 
-    public function postDailyKickoff(LunchDay $day): void
+    public function postDailyKickoff(LunchSession $session): void
     {
-        if ($day->provider_message_ts) {
+        if ($session->provider_message_ts) {
             return;
         }
 
-        $blocks = $this->blocks->dailyKickoffBlocks($day);
+        $blocks = $this->blocks->dailyKickoffBlocks($session);
         $response = $this->slack->postMessage(
-            $day->provider_channel_id,
-            'Dejeuner du '.$day->date->format('Y-m-d'),
+            $session->provider_channel_id,
+            'Dejeuner du '.$session->date->format('Y-m-d'),
             $blocks
         );
 
         if ($response['ok'] ?? false) {
-            $day->provider_message_ts = $response['ts'] ?? null;
-            $day->save();
+            $session->provider_message_ts = $response['ts'] ?? null;
+            $session->save();
         }
     }
 
-    public function postProposalMessage(LunchDayProposal $proposal): void
+    public function postProposalMessage(VendorProposal $proposal): void
     {
-        $proposal->loadMissing(['enseigne', 'orders', 'lunchDay']);
+        $proposal->loadMissing(['vendor', 'orders', 'lunchSession']);
         $blocks = $this->blocks->proposalBlocks($proposal, $proposal->orders->count());
 
         $response = $this->slack->postMessage(
-            $proposal->lunchDay->provider_channel_id,
-            'Proposition: '.$proposal->enseigne->name,
+            $proposal->lunchSession->provider_channel_id,
+            'Proposition: '.$proposal->vendor->name,
             $blocks,
-            $proposal->lunchDay->provider_message_ts
+            $proposal->lunchSession->provider_message_ts
         );
 
         if ($response['ok'] ?? false) {
@@ -51,26 +51,26 @@ class SlackMessenger
         }
     }
 
-    public function updateProposalMessage(LunchDayProposal $proposal): void
+    public function updateProposalMessage(VendorProposal $proposal): void
     {
         if (! $proposal->provider_message_ts) {
             return;
         }
 
-        $proposal->loadMissing(['enseigne', 'orders', 'lunchDay']);
+        $proposal->loadMissing(['vendor', 'orders', 'lunchSession']);
         $blocks = $this->blocks->proposalBlocks($proposal, $proposal->orders->count());
 
         $this->slack->updateMessage(
-            $proposal->lunchDay->provider_channel_id,
+            $proposal->lunchSession->provider_channel_id,
             $proposal->provider_message_ts,
-            'Proposition: '.$proposal->enseigne->name,
+            'Proposition: '.$proposal->vendor->name,
             $blocks
         );
     }
 
-    public function postSummary(LunchDayProposal $proposal): void
+    public function postSummary(VendorProposal $proposal): void
     {
-        $proposal->loadMissing(['orders', 'lunchDay']);
+        $proposal->loadMissing(['orders', 'lunchSession']);
 
         $orders = $proposal->orders;
         $estimated = $orders->sum('price_estimated');
@@ -84,22 +84,22 @@ class SlackMessenger
         ]);
 
         $this->slack->postMessage(
-            $proposal->lunchDay->provider_channel_id,
+            $proposal->lunchSession->provider_channel_id,
             'Recapitulatif',
             $blocks,
-            $proposal->lunchDay->provider_message_ts
+            $proposal->lunchSession->provider_message_ts
         );
     }
 
-    public function postClosureSummary(LunchDay $day): void
+    public function postClosureSummary(LunchSession $session): void
     {
-        if (! $day->provider_message_ts) {
+        if (! $session->provider_message_ts) {
             return;
         }
 
         $orders = Order::query()
-            ->whereHas('proposal', function ($query) use ($day) {
-                $query->where('lunch_day_id', $day->id);
+            ->whereHas('proposal', function ($query) use ($session) {
+                $query->where('lunch_session_id', $session->id);
             })
             ->get();
 
@@ -121,7 +121,7 @@ class SlackMessenger
         $text = "*Journee cloturee.*\nRemboursements:\n".implode("\n", $lines);
 
         $this->slack->postMessage(
-            $day->provider_channel_id,
+            $session->provider_channel_id,
             'Journee cloturee',
             [
                 [
@@ -132,22 +132,22 @@ class SlackMessenger
                     ],
                 ],
             ],
-            $day->provider_message_ts
+            $session->provider_message_ts
         );
     }
 
     /**
-     * @param  Collection<int, LunchDay>  $days
+     * @param  Collection<int, LunchSession>  $sessions
      */
-    public function notifyDaysLocked(Collection $days): void
+    public function notifySessionsLocked(Collection $sessions): void
     {
-        foreach ($days as $day) {
-            if (! $day->provider_message_ts) {
+        foreach ($sessions as $session) {
+            if (! $session->provider_message_ts) {
                 continue;
             }
 
             $this->slack->postMessage(
-                $day->provider_channel_id,
+                $session->provider_channel_id,
                 'Commandes verrouillees.',
                 [
                     [
@@ -158,19 +158,19 @@ class SlackMessenger
                         ],
                     ],
                 ],
-                $day->provider_message_ts
+                $session->provider_message_ts
             );
         }
     }
 
-    public function postRoleDelegation(LunchDayProposal $proposal, string $role, string $fromUserId, string $toUserId): void
+    public function postRoleDelegation(VendorProposal $proposal, string $role, string $fromUserId, string $toUserId): void
     {
-        if (! $proposal->lunchDay?->provider_message_ts) {
+        if (! $proposal->lunchSession?->provider_message_ts) {
             return;
         }
 
         $this->slack->postMessage(
-            $proposal->lunchDay->provider_channel_id,
+            $proposal->lunchSession->provider_channel_id,
             'Role delegue',
             [
                 [
@@ -181,7 +181,7 @@ class SlackMessenger
                     ],
                 ],
             ],
-            $proposal->lunchDay->provider_message_ts
+            $proposal->lunchSession->provider_message_ts
         );
     }
 

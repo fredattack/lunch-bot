@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\LunchDayProposal;
 use App\Models\Order;
+use App\Models\VendorProposal;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,7 +17,7 @@ class OrderFactory extends Factory
     public function definition(): array
     {
         return [
-            'lunch_day_proposal_id' => LunchDayProposal::factory(),
+            'vendor_proposal_id' => VendorProposal::factory(),
             'provider_user_id' => 'U'.fake()->regexify('[A-Z0-9]{10}'),
             'description' => fake()->sentence(),
             'price_estimated' => fake()->randomFloat(2, 5, 30),

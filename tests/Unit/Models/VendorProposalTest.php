@@ -2,20 +2,20 @@
 
 namespace Tests\Unit\Models;
 
-use App\Models\LunchDay;
-use App\Models\LunchDayProposal;
+use App\Models\LunchSession;
+use App\Models\VendorProposal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class LunchDayProposalTest extends TestCase
+class VendorProposalTest extends TestCase
 {
     use RefreshDatabase;
 
     public function test_has_role_returns_true_for_runner(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->withRunner('U_RUNNER')
             ->create();
 
@@ -25,9 +25,9 @@ class LunchDayProposalTest extends TestCase
 
     public function test_has_role_returns_true_for_orderer(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->withOrderer('U_ORDERER')
             ->create();
 
@@ -37,9 +37,9 @@ class LunchDayProposalTest extends TestCase
 
     public function test_has_role_returns_true_when_user_has_both_roles(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->create([
                 'runner_user_id' => 'U_BOTH',
                 'orderer_user_id' => 'U_BOTH',
@@ -50,9 +50,9 @@ class LunchDayProposalTest extends TestCase
 
     public function test_get_role_for_returns_runner(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->withRunner('U_RUNNER')
             ->create();
 
@@ -61,9 +61,9 @@ class LunchDayProposalTest extends TestCase
 
     public function test_get_role_for_returns_orderer(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->withOrderer('U_ORDERER')
             ->create();
 
@@ -72,17 +72,17 @@ class LunchDayProposalTest extends TestCase
 
     public function test_get_role_for_returns_null_for_non_role_user(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
 
         $this->assertNull($proposal->getRoleFor('U_RANDOM'));
     }
 
     public function test_get_role_for_prioritizes_runner_over_orderer(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->create([
                 'runner_user_id' => 'U_BOTH',
                 'orderer_user_id' => 'U_BOTH',
@@ -93,9 +93,9 @@ class LunchDayProposalTest extends TestCase
 
     public function test_is_runner_returns_true_for_runner(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->withRunner('U_RUNNER')
             ->create();
 
@@ -105,9 +105,9 @@ class LunchDayProposalTest extends TestCase
 
     public function test_is_orderer_returns_true_for_orderer(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->withOrderer('U_ORDERER')
             ->create();
 

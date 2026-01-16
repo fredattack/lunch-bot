@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Enseigne extends Model
+class Vendor extends Model
 {
     use HasFactory;
 
@@ -24,6 +24,6 @@ class Enseigne extends Model
 
     public function proposals(): HasMany
     {
-        return $this->hasMany(LunchDayProposal::class);
+        return $this->hasMany(VendorProposal::class);
     }
 }

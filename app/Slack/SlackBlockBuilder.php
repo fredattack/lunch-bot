@@ -3,18 +3,18 @@
 namespace App\Slack;
 
 use App\Enums\FulfillmentType;
-use App\Models\Enseigne;
-use App\Models\LunchDay;
-use App\Models\LunchDayProposal;
+use App\Models\LunchSession;
 use App\Models\Order;
+use App\Models\Vendor;
+use App\Models\VendorProposal;
 use Carbon\CarbonInterface;
 
 class SlackBlockBuilder
 {
-    public function dailyKickoffBlocks(LunchDay $day): array
+    public function dailyKickoffBlocks(LunchSession $session): array
     {
-        $deadline = $this->formatTime($day->deadline_at);
-        $date = $day->date->format('Y-m-d');
+        $deadline = $this->formatTime($session->deadline_at);
+        $date = $session->date->format('Y-m-d');
 
         return [
             [
@@ -27,18 +27,18 @@ class SlackBlockBuilder
             [
                 'type' => 'actions',
                 'elements' => [
-                    $this->button('Proposer une enseigne', SlackActions::OPEN_PROPOSAL_MODAL, (string) $day->id),
-                    $this->button('Ajouter une enseigne', SlackActions::OPEN_ADD_ENSEIGNE_MODAL, (string) $day->id),
-                    $this->button('Cloturer la journee', SlackActions::CLOSE_DAY, (string) $day->id, 'danger'),
+                    $this->button('Proposer une enseigne', SlackActions::OPEN_PROPOSAL_MODAL, (string) $session->id),
+                    $this->button('Ajouter une enseigne', SlackActions::OPEN_ADD_ENSEIGNE_MODAL, (string) $session->id),
+                    $this->button('Cloturer la journee', SlackActions::CLOSE_DAY, (string) $session->id, 'danger'),
                 ],
             ],
         ];
     }
 
-    public function proposalBlocks(LunchDayProposal $proposal, int $orderCount): array
+    public function proposalBlocks(VendorProposal $proposal, int $orderCount): array
     {
-        $enseigne = $proposal->enseigne;
-        $menu = $enseigne->url_menu ? "<{$enseigne->url_menu}|Menu>" : 'Menu indisponible';
+        $vendor = $proposal->vendor;
+        $menu = $vendor->url_menu ? "<{$vendor->url_menu}|Menu>" : 'Menu indisponible';
         $runner = $proposal->runner_user_id ? "<@{$proposal->runner_user_id}>" : '_non assigne_';
         $orderer = $proposal->orderer_user_id ? "<@{$proposal->orderer_user_id}>" : '_non assigne_';
         $type = $proposal->fulfillment_type === FulfillmentType::Delivery ? 'Delivery' : 'Pickup';
@@ -49,7 +49,7 @@ class SlackBlockBuilder
                 'type' => 'section',
                 'text' => [
                     'type' => 'mrkdwn',
-                    'text' => "*{$enseigne->name}* ({$menu})\nType: {$type}\n{$platform}\nRunner: {$runner}\nOrderer: {$orderer}",
+                    'text' => "*{$vendor->name}* ({$menu})\nType: {$type}\n{$platform}\nRunner: {$runner}\nOrderer: {$orderer}",
                 ],
             ],
             [
@@ -82,7 +82,7 @@ class SlackBlockBuilder
         ];
     }
 
-    public function summaryBlocks(LunchDayProposal $proposal, array $orders, array $totals): array
+    public function summaryBlocks(VendorProposal $proposal, array $orders, array $totals): array
     {
         $lines = [];
         foreach ($orders as $order) {
@@ -109,22 +109,22 @@ class SlackBlockBuilder
         ];
     }
 
-    public function proposalModal(LunchDay $day, array $enseignes): array
+    public function proposalModal(LunchSession $session, array $vendors): array
     {
-        $options = array_map(function (Enseigne $enseigne) {
+        $options = array_map(function (Vendor $vendor) {
             return [
                 'text' => [
                     'type' => 'plain_text',
-                    'text' => $enseigne->name,
+                    'text' => $vendor->name,
                 ],
-                'value' => (string) $enseigne->id,
+                'value' => (string) $vendor->id,
             ];
-        }, $enseignes);
+        }, $vendors);
 
         return [
             'type' => 'modal',
             'callback_id' => SlackActions::CALLBACK_PROPOSAL_CREATE,
-            'private_metadata' => json_encode(['lunch_day_id' => $day->id], JSON_THROW_ON_ERROR),
+            'private_metadata' => json_encode(['lunch_session_id' => $session->id], JSON_THROW_ON_ERROR),
             'title' => [
                 'type' => 'plain_text',
                 'text' => 'Proposer une enseigne',
@@ -190,7 +190,7 @@ class SlackBlockBuilder
         ];
     }
 
-    public function addEnseigneModal(array $metadata = []): array
+    public function addVendorModal(array $metadata = []): array
     {
         $modal = [
             'type' => 'modal',
@@ -207,7 +207,7 @@ class SlackBlockBuilder
                 'type' => 'plain_text',
                 'text' => 'Annuler',
             ],
-            'blocks' => $this->enseigneBlocks(),
+            'blocks' => $this->vendorBlocks(),
         ];
 
         if (! empty($metadata)) {
@@ -217,12 +217,12 @@ class SlackBlockBuilder
         return $modal;
     }
 
-    public function editEnseigneModal(Enseigne $enseigne, array $metadata = []): array
+    public function editVendorModal(Vendor $vendor, array $metadata = []): array
     {
         return [
             'type' => 'modal',
             'callback_id' => SlackActions::CALLBACK_ENSEIGNE_UPDATE,
-            'private_metadata' => json_encode(array_merge(['enseigne_id' => $enseigne->id], $metadata), JSON_THROW_ON_ERROR),
+            'private_metadata' => json_encode(array_merge(['vendor_id' => $vendor->id], $metadata), JSON_THROW_ON_ERROR),
             'title' => [
                 'type' => 'plain_text',
                 'text' => 'Modifier enseigne',
@@ -235,7 +235,7 @@ class SlackBlockBuilder
                 'type' => 'plain_text',
                 'text' => 'Annuler',
             ],
-            'blocks' => array_merge($this->enseigneBlocks($enseigne), [
+            'blocks' => array_merge($this->vendorBlocks($vendor), [
                 [
                     'type' => 'input',
                     'block_id' => 'active',
@@ -259,9 +259,9 @@ class SlackBlockBuilder
                         'initial_option' => [
                             'text' => [
                                 'type' => 'plain_text',
-                                'text' => $enseigne->active ? 'Active' : 'Inactive',
+                                'text' => $vendor->active ? 'Active' : 'Inactive',
                             ],
-                            'value' => $enseigne->active ? '1' : '0',
+                            'value' => $vendor->active ? '1' : '0',
                         ],
                     ],
                 ],
@@ -269,7 +269,7 @@ class SlackBlockBuilder
         ];
     }
 
-    public function orderModal(LunchDayProposal $proposal, ?Order $order, bool $allowFinal, bool $isEdit): array
+    public function orderModal(VendorProposal $proposal, ?Order $order, bool $allowFinal, bool $isEdit): array
     {
         $blocks = [
             [
@@ -337,7 +337,7 @@ class SlackBlockBuilder
             'callback_id' => $isEdit ? SlackActions::CALLBACK_ORDER_EDIT : SlackActions::CALLBACK_ORDER_CREATE,
             'private_metadata' => json_encode([
                 'proposal_id' => $proposal->id,
-                'lunch_day_id' => $proposal->lunch_day_id,
+                'lunch_session_id' => $proposal->lunch_session_id,
             ], JSON_THROW_ON_ERROR),
             'title' => [
                 'type' => 'plain_text',
@@ -355,14 +355,14 @@ class SlackBlockBuilder
         ];
     }
 
-    public function delegateModal(LunchDayProposal $proposal, string $role): array
+    public function delegateModal(VendorProposal $proposal, string $role): array
     {
         return [
             'type' => 'modal',
             'callback_id' => SlackActions::CALLBACK_ROLE_DELEGATE,
             'private_metadata' => json_encode([
                 'proposal_id' => $proposal->id,
-                'lunch_day_id' => $proposal->lunch_day_id,
+                'lunch_session_id' => $proposal->lunch_session_id,
                 'role' => $role,
             ], JSON_THROW_ON_ERROR),
             'title' => [
@@ -394,7 +394,7 @@ class SlackBlockBuilder
         ];
     }
 
-    public function adjustPriceModal(LunchDayProposal $proposal, array $orders): array
+    public function adjustPriceModal(VendorProposal $proposal, array $orders): array
     {
         $options = array_map(function (Order $order) {
             $label = $order->description;
@@ -417,7 +417,7 @@ class SlackBlockBuilder
             'callback_id' => SlackActions::CALLBACK_ORDER_ADJUST_PRICE,
             'private_metadata' => json_encode([
                 'proposal_id' => $proposal->id,
-                'lunch_day_id' => $proposal->lunch_day_id,
+                'lunch_session_id' => $proposal->lunch_session_id,
             ], JSON_THROW_ON_ERROR),
             'title' => [
                 'type' => 'plain_text',
@@ -461,7 +461,7 @@ class SlackBlockBuilder
         ];
     }
 
-    private function enseigneBlocks(?Enseigne $enseigne = null): array
+    private function vendorBlocks(?Vendor $vendor = null): array
     {
         return [
             [
@@ -474,7 +474,7 @@ class SlackBlockBuilder
                 'element' => [
                     'type' => 'plain_text_input',
                     'action_id' => 'name',
-                    'initial_value' => $enseigne?->name ?? '',
+                    'initial_value' => $vendor?->name ?? '',
                 ],
             ],
             [
@@ -488,7 +488,7 @@ class SlackBlockBuilder
                 'element' => [
                     'type' => 'plain_text_input',
                     'action_id' => 'url_menu',
-                    'initial_value' => $enseigne?->url_menu ?? '',
+                    'initial_value' => $vendor?->url_menu ?? '',
                 ],
             ],
             [
@@ -503,7 +503,7 @@ class SlackBlockBuilder
                     'type' => 'plain_text_input',
                     'action_id' => 'notes',
                     'multiline' => true,
-                    'initial_value' => $enseigne?->notes ?? '',
+                    'initial_value' => $vendor?->notes ?? '',
                 ],
             ],
         ];

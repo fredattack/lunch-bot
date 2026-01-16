@@ -3,9 +3,9 @@
 namespace Tests\Unit\Actions\Lunch;
 
 use App\Actions\Lunch\UpdateOrder;
-use App\Models\LunchDay;
-use App\Models\LunchDayProposal;
+use App\Models\LunchSession;
 use App\Models\Order;
+use App\Models\VendorProposal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,8 +23,8 @@ class UpdateOrderTest extends TestCase
 
     public function test_updates_order_description(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $order = Order::factory()->for($proposal)->create([
             'description' => 'Old description',
         ]);
@@ -37,8 +37,8 @@ class UpdateOrderTest extends TestCase
 
     public function test_appends_audit_log_entry_on_change(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $order = Order::factory()->for($proposal)->create([
             'description' => 'Original',
             'audit_log' => [['at' => now()->toIso8601String(), 'by' => 'U_CREATOR', 'changes' => ['created' => true]]],
@@ -57,8 +57,8 @@ class UpdateOrderTest extends TestCase
 
     public function test_does_not_append_audit_log_when_no_changes(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $order = Order::factory()->for($proposal)->create([
             'description' => 'Same description',
             'audit_log' => [['at' => now()->toIso8601String(), 'by' => 'U_CREATOR', 'changes' => ['created' => true]]],
@@ -73,8 +73,8 @@ class UpdateOrderTest extends TestCase
 
     public function test_updates_price_final(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $order = Order::factory()->for($proposal)->create([
             'price_final' => null,
         ]);
@@ -87,8 +87,8 @@ class UpdateOrderTest extends TestCase
 
     public function test_detects_float_changes_correctly(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $order = Order::factory()->for($proposal)->create([
             'price_estimated' => 10.00,
             'audit_log' => [['at' => now()->toIso8601String(), 'by' => 'U_CREATOR', 'changes' => ['created' => true]]],
@@ -104,8 +104,8 @@ class UpdateOrderTest extends TestCase
 
     public function test_does_not_detect_change_for_same_float_value(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $order = Order::factory()->for($proposal)->create([
             'price_estimated' => 10.00,
             'audit_log' => [['at' => now()->toIso8601String(), 'by' => 'U_CREATOR', 'changes' => ['created' => true]]],
@@ -120,8 +120,8 @@ class UpdateOrderTest extends TestCase
 
     public function test_handles_null_to_value_transition(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $order = Order::factory()->for($proposal)->create([
             'notes' => null,
             'audit_log' => [['at' => now()->toIso8601String(), 'by' => 'U_CREATOR', 'changes' => ['created' => true]]],

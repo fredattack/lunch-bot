@@ -2,13 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Models\Enseigne;
+use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Enseigne>
+ * @extends Factory<Vendor>
  */
-class EnseigneFactory extends Factory
+class VendorFactory extends Factory
 {
     /**
      * @return array<string, mixed>

@@ -2,13 +2,13 @@
 
 namespace App\Actions\Lunch;
 
-use App\Models\Enseigne;
+use App\Models\Vendor;
 
-class CreateEnseigne
+class CreateVendor
 {
-    public function handle(string $name, ?string $urlMenu, ?string $notes, string $createdByUserId): Enseigne
+    public function handle(string $name, ?string $urlMenu, ?string $notes, string $createdByUserId): Vendor
     {
-        return Enseigne::create([
+        return Vendor::create([
             'name' => $name,
             'url_menu' => $urlMenu,
             'notes' => $notes,

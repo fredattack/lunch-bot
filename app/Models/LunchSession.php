@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use App\Enums\LunchDayStatus;
+use App\Enums\LunchSessionStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class LunchDay extends Model
+class LunchSession extends Model
 {
     use HasFactory;
 
@@ -23,26 +23,26 @@ class LunchDay extends Model
     protected $casts = [
         'date' => 'date',
         'deadline_at' => 'datetime',
-        'status' => LunchDayStatus::class,
+        'status' => LunchSessionStatus::class,
     ];
 
     public function proposals(): HasMany
     {
-        return $this->hasMany(LunchDayProposal::class);
+        return $this->hasMany(VendorProposal::class);
     }
 
     public function isOpen(): bool
     {
-        return $this->status === LunchDayStatus::Open;
+        return $this->status === LunchSessionStatus::Open;
     }
 
     public function isLocked(): bool
     {
-        return $this->status === LunchDayStatus::Locked;
+        return $this->status === LunchSessionStatus::Locked;
     }
 
     public function isClosed(): bool
     {
-        return $this->status === LunchDayStatus::Closed;
+        return $this->status === LunchSessionStatus::Closed;
     }
 }

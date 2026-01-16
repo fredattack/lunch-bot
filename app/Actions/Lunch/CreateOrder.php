@@ -2,8 +2,8 @@
 
 namespace App\Actions\Lunch;
 
-use App\Models\LunchDayProposal;
 use App\Models\Order;
+use App\Models\VendorProposal;
 use InvalidArgumentException;
 
 class CreateOrder
@@ -11,16 +11,16 @@ class CreateOrder
     /**
      * @param  array{description: string, price_estimated: float, notes?: string|null}  $data
      */
-    public function handle(LunchDayProposal $proposal, string $userId, array $data): Order
+    public function handle(VendorProposal $proposal, string $userId, array $data): Order
     {
-        $proposal->loadMissing('lunchDay');
+        $proposal->loadMissing('lunchSession');
 
-        if (! $proposal->lunchDay->isOpen()) {
-            throw new InvalidArgumentException('Lunch day is not open.');
+        if (! $proposal->lunchSession->isOpen()) {
+            throw new InvalidArgumentException('Lunch session is not open.');
         }
 
         return Order::create([
-            'lunch_day_proposal_id' => $proposal->id,
+            'vendor_proposal_id' => $proposal->id,
             'provider_user_id' => $userId,
             'description' => $data['description'],
             'price_estimated' => $data['price_estimated'],

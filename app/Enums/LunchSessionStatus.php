@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum LunchDayStatus: string
+enum LunchSessionStatus: string
 {
     case Open = 'open';
     case Locked = 'locked';

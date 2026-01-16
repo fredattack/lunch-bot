@@ -3,8 +3,8 @@
 namespace Tests\Unit\Actions\Lunch;
 
 use App\Actions\Lunch\DelegateRole;
-use App\Models\LunchDay;
-use App\Models\LunchDayProposal;
+use App\Models\LunchSession;
+use App\Models\VendorProposal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,9 +22,9 @@ class DelegateRoleTest extends TestCase
 
     public function test_delegates_runner_role(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->withRunner('U_CURRENT_RUNNER')
             ->create();
 
@@ -36,9 +36,9 @@ class DelegateRoleTest extends TestCase
 
     public function test_delegates_orderer_role(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->withOrderer('U_CURRENT_ORDERER')
             ->create();
 
@@ -50,9 +50,9 @@ class DelegateRoleTest extends TestCase
 
     public function test_fails_when_from_user_is_not_current_runner(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->withRunner('U_ACTUAL_RUNNER')
             ->create();
 
@@ -64,9 +64,9 @@ class DelegateRoleTest extends TestCase
 
     public function test_fails_when_from_user_is_not_current_orderer(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()
-            ->for($day)
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
             ->withOrderer('U_ACTUAL_ORDERER')
             ->create();
 
@@ -78,8 +78,8 @@ class DelegateRoleTest extends TestCase
 
     public function test_fails_when_role_is_not_assigned(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create([
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create([
             'runner_user_id' => null,
         ]);
 

@@ -76,16 +76,16 @@ public function handle(Model $model): void
 
 ### Actions (Logique Métier)
 Toutes les Actions sont dans `app/Actions/Lunch/` :
-- `CreateLunchDay` - Crée ou récupère un LunchDay
-- `CloseLunchDay` - Ferme un jour et ses proposals
-- `LockExpiredDays` - Verrouille les jours passés deadline
-- `ProposeRestaurant` - Crée une proposition de restaurant
+- `CreateLunchSession` - Crée ou récupère une LunchSession
+- `CloseLunchSession` - Ferme une session et ses proposals
+- `LockExpiredSessions` - Verrouille les sessions passées deadline
+- `ProposeVendor` - Crée une proposition de vendor
 - `AssignRole` - Assigne runner/orderer (avec lock transactionnel)
 - `DelegateRole` - Transfère un rôle à un autre utilisateur
 - `CreateOrder` - Crée une commande
 - `UpdateOrder` - Met à jour une commande avec audit log
 - `AdjustOrderPrice` - Ajuste le prix final
-- `CreateEnseigne` / `UpdateEnseigne` - Gestion des restaurants
+- `CreateVendor` / `UpdateVendor` - Gestion des vendors
 
 ### Couche Slack (Adaptateur)
 La couche Slack dans `app/Slack/` sépare la logique de présentation :
@@ -104,15 +104,15 @@ Controller → SlackInteractionHandler → Action → Model
 
 ### Data Model
 ```
-LunchDay (daily session)
-    └── LunchDayProposal (restaurant proposal)
+LunchSession (daily session)
+    └── VendorProposal (vendor proposal)
             └── Order (individual user order)
 
-Enseigne (restaurant/venue - standalone)
+Vendor (restaurant/venue - standalone)
 ```
 
 ### Key Enums
-- `LunchDayStatus`: open, locked, closed
+- `LunchSessionStatus`: open, locked, closed
 - `ProposalStatus`: open, ordering, placed, received, closed
 - `FulfillmentType`: pickup, delivery
 
@@ -123,7 +123,7 @@ All routes in `routes/api.php` protected by `slack.signature` middleware:
 
 ### Provider Pattern (Identités)
 L'app utilise un pattern générique pour les identifiants externes :
-- `provider` (défaut: 'slack') sur LunchDay
+- `provider` (défaut: 'slack') sur LunchSession
 - `provider_user_id` au lieu de slack_user_id
 - `provider_channel_id` au lieu de slack_channel_id
 - `provider_message_ts` au lieu de slack_message_ts

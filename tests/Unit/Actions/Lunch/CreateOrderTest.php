@@ -3,9 +3,9 @@
 namespace Tests\Unit\Actions\Lunch;
 
 use App\Actions\Lunch\CreateOrder;
-use App\Models\LunchDay;
-use App\Models\LunchDayProposal;
+use App\Models\LunchSession;
 use App\Models\Order;
+use App\Models\VendorProposal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use Tests\TestCase;
@@ -22,10 +22,10 @@ class CreateOrderTest extends TestCase
         $this->action = new CreateOrder;
     }
 
-    public function test_creates_order_for_open_day(): void
+    public function test_creates_order_for_open_session(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $userId = 'U_CUSTOMER';
         $data = [
             'description' => 'Burger with fries',
@@ -36,47 +36,47 @@ class CreateOrderTest extends TestCase
         $order = $this->action->handle($proposal, $userId, $data);
 
         $this->assertInstanceOf(Order::class, $order);
-        $this->assertEquals($proposal->id, $order->lunch_day_proposal_id);
+        $this->assertEquals($proposal->id, $order->vendor_proposal_id);
         $this->assertEquals($userId, $order->provider_user_id);
         $this->assertEquals('Burger with fries', $order->description);
         $this->assertEquals(15.50, (float) $order->price_estimated);
         $this->assertEquals('No onions please', $order->notes);
     }
 
-    public function test_throws_exception_for_locked_day(): void
+    public function test_throws_exception_for_locked_session(): void
     {
-        $day = LunchDay::factory()->locked()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->locked()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $data = [
             'description' => 'Some food',
             'price_estimated' => 10.00,
         ];
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Lunch day is not open.');
+        $this->expectExceptionMessage('Lunch session is not open.');
 
         $this->action->handle($proposal, 'U_USER', $data);
     }
 
-    public function test_throws_exception_for_closed_day(): void
+    public function test_throws_exception_for_closed_session(): void
     {
-        $day = LunchDay::factory()->closed()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->closed()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $data = [
             'description' => 'Some food',
             'price_estimated' => 10.00,
         ];
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Lunch day is not open.');
+        $this->expectExceptionMessage('Lunch session is not open.');
 
         $this->action->handle($proposal, 'U_USER', $data);
     }
 
     public function test_creates_order_with_audit_log(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $userId = 'U_CUSTOMER';
         $data = [
             'description' => 'Pizza',
@@ -93,8 +93,8 @@ class CreateOrderTest extends TestCase
 
     public function test_creates_order_with_null_notes(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $data = [
             'description' => 'Salad',
             'price_estimated' => 8.50,
@@ -107,8 +107,8 @@ class CreateOrderTest extends TestCase
 
     public function test_creates_order_with_explicit_null_notes(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $data = [
             'description' => 'Salad',
             'price_estimated' => 8.50,
@@ -122,8 +122,8 @@ class CreateOrderTest extends TestCase
 
     public function test_allows_multiple_orders_from_different_users(): void
     {
-        $day = LunchDay::factory()->open()->create();
-        $proposal = LunchDayProposal::factory()->for($day)->create();
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
         $data = [
             'description' => 'Same menu',
             'price_estimated' => 10.00,

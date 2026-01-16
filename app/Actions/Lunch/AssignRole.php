@@ -3,17 +3,17 @@
 namespace App\Actions\Lunch;
 
 use App\Enums\ProposalStatus;
-use App\Models\LunchDayProposal;
+use App\Models\VendorProposal;
 use Illuminate\Support\Facades\DB;
 
 class AssignRole
 {
-    public function handle(LunchDayProposal $proposal, string $role, string $userId): bool
+    public function handle(VendorProposal $proposal, string $role, string $userId): bool
     {
         $field = $role === 'runner' ? 'runner_user_id' : 'orderer_user_id';
 
         $success = DB::transaction(function () use ($proposal, $field, $userId): bool {
-            $locked = LunchDayProposal::query()
+            $locked = VendorProposal::query()
                 ->whereKey($proposal->id)
                 ->lockForUpdate()
                 ->first();

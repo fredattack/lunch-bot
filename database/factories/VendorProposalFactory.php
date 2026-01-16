@@ -4,15 +4,15 @@ namespace Database\Factories;
 
 use App\Enums\FulfillmentType;
 use App\Enums\ProposalStatus;
-use App\Models\Enseigne;
-use App\Models\LunchDay;
-use App\Models\LunchDayProposal;
+use App\Models\LunchSession;
+use App\Models\Vendor;
+use App\Models\VendorProposal;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<LunchDayProposal>
+ * @extends Factory<VendorProposal>
  */
-class LunchDayProposalFactory extends Factory
+class VendorProposalFactory extends Factory
 {
     /**
      * @return array<string, mixed>
@@ -20,8 +20,8 @@ class LunchDayProposalFactory extends Factory
     public function definition(): array
     {
         return [
-            'lunch_day_id' => LunchDay::factory(),
-            'enseigne_id' => Enseigne::factory(),
+            'lunch_session_id' => LunchSession::factory(),
+            'vendor_id' => Vendor::factory(),
             'fulfillment_type' => fake()->randomElement(FulfillmentType::cases()),
             'runner_user_id' => null,
             'orderer_user_id' => null,

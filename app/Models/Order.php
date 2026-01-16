@@ -11,7 +11,7 @@ class Order extends Model
     use HasFactory;
 
     protected $fillable = [
-        'lunch_day_proposal_id',
+        'vendor_proposal_id',
         'provider_user_id',
         'description',
         'price_estimated',
@@ -28,10 +28,10 @@ class Order extends Model
 
     public function proposal(): BelongsTo
     {
-        return $this->belongsTo(LunchDayProposal::class, 'lunch_day_proposal_id');
+        return $this->belongsTo(VendorProposal::class, 'vendor_proposal_id');
     }
 
-    public function lunchDayProposal(): BelongsTo
+    public function vendorProposal(): BelongsTo
     {
         return $this->proposal();
     }
