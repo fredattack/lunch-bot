@@ -18,19 +18,5 @@ return new class extends Migration
 
             $table->unique(['provider', 'provider_team_id']);
         });
-
-        Schema::create('organization_installations', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->text('bot_token');
-            $table->string('signing_secret');
-            $table->string('installed_by_provider_user_id');
-            $table->string('default_channel_id')->nullable();
-            $table->json('scopes')->nullable();
-            $table->timestamp('installed_at');
-            $table->timestamps();
-
-            $table->unique('organization_id');
-        });
     }
 };

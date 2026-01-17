@@ -8,21 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('enseignes', function (Blueprint $table) {
+        Schema::create('vendors', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('url_menu')->nullable();
             $table->text('notes')->nullable();
             $table->boolean('active')->default(true);
-            $table->string('created_by_slack_user_id');
+            $table->string('created_by_provider_user_id');
             $table->timestamps();
 
-            $table->index('active');
+            $table->unique(['organization_id', 'name']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('enseignes');
     }
 };
