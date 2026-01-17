@@ -39,4 +39,18 @@ class SlackActions
     public const CALLBACK_ROLE_DELEGATE = 'role.delegate';
 
     public const CALLBACK_ORDER_ADJUST_PRICE = 'order.adjust_price';
+
+    public const CALLBACK_LUNCH_DASHBOARD = 'lunch.dashboard';
+
+    public const DASHBOARD_PROPOSE_VENDOR = 'dashboard_propose_vendor';
+
+    public const DASHBOARD_ORDER_HERE = 'dashboard_order_here';
+
+    public const DASHBOARD_CLAIM_RESPONSIBLE = 'dashboard_claim_responsible';
+
+    public const DASHBOARD_VIEW_ORDERS = 'dashboard_view_orders';
+
+    public const DASHBOARD_MY_ORDER = 'dashboard_my_order';
+
+    public const DASHBOARD_CLOSE_SESSION = 'dashboard_close_session';
 }

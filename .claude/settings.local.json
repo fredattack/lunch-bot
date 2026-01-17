@@ -5,7 +5,8 @@
       "mcp__laravel-boost__database-schema",
       "Bash(php artisan make:migration:*)",
       "Bash(php artisan:*)",
-      "Bash(make help:*)"
+      "Bash(make help:*)",
+      "Bash(ls:*)"
     ]
   }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\Slack;
 
 use App\Actions\LunchSession\CloseLunchSession;
+use App\Actions\LunchSession\CreateLunchSession;
 use App\Actions\Order\CreateOrder;
 use App\Actions\Order\UpdateOrder;
 use App\Actions\Vendor\CreateVendor;
@@ -51,6 +52,7 @@ class SlackInteractionHandlerTest extends TestCase
             $this->messenger,
             $this->blocks,
             app(CloseLunchSession::class),
+            app(CreateLunchSession::class),
             app(ProposeVendor::class),
             app(AssignRole::class),
             app(DelegateRole::class),

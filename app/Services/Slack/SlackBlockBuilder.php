@@ -461,6 +461,134 @@ class SlackBlockBuilder
         ];
     }
 
+    /**
+     * @param  array<int, VendorProposal>  $proposals
+     */
+    public function lunchDashboardModal(LunchSession $session, array $proposals, ?Order $userOrder, bool $canClose): array
+    {
+        $date = $session->date->format('d/m');
+        $deadline = $this->formatTime($session->deadline_at);
+        $statusLabel = $session->isOpen() ? 'Ouverte' : ($session->isLocked() ? 'Verrouillee' : 'Fermee');
+
+        $blocks = [
+            [
+                'type' => 'header',
+                'text' => [
+                    'type' => 'plain_text',
+                    'text' => "Lunch - session du {$date}",
+                ],
+            ],
+            [
+                'type' => 'context',
+                'elements' => [
+                    [
+                        'type' => 'mrkdwn',
+                        'text' => "Statut: *{$statusLabel}* | Deadline: {$deadline}",
+                    ],
+                ],
+            ],
+            [
+                'type' => 'divider',
+            ],
+        ];
+
+        if (empty($proposals)) {
+            $blocks[] = [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => '_Aucune proposition pour le moment._',
+                ],
+            ];
+        } else {
+            foreach ($proposals as $proposal) {
+                $blocks = array_merge($blocks, $this->dashboardProposalBlocks($proposal, $session));
+            }
+        }
+
+        $blocks[] = [
+            'type' => 'divider',
+        ];
+
+        $actionElements = [];
+
+        if ($session->isOpen()) {
+            $actionElements[] = $this->button('Proposer un restaurant', SlackActions::DASHBOARD_PROPOSE_VENDOR, (string) $session->id, 'primary');
+        }
+
+        if ($userOrder) {
+            $actionElements[] = $this->button('Ma commande', SlackActions::DASHBOARD_MY_ORDER, (string) $userOrder->vendor_proposal_id);
+        }
+
+        if ($canClose && ! $session->isClosed()) {
+            $actionElements[] = $this->button('Cloturer la session', SlackActions::DASHBOARD_CLOSE_SESSION, (string) $session->id, 'danger');
+        }
+
+        if (! empty($actionElements)) {
+            $blocks[] = [
+                'type' => 'actions',
+                'elements' => $actionElements,
+            ];
+        }
+
+        return [
+            'type' => 'modal',
+            'callback_id' => SlackActions::CALLBACK_LUNCH_DASHBOARD,
+            'title' => [
+                'type' => 'plain_text',
+                'text' => 'Lunch Dashboard',
+            ],
+            'close' => [
+                'type' => 'plain_text',
+                'text' => 'Fermer',
+            ],
+            'blocks' => $blocks,
+        ];
+    }
+
+    private function dashboardProposalBlocks(VendorProposal $proposal, LunchSession $session): array
+    {
+        $vendor = $proposal->vendor;
+        $vendorName = $vendor?->name ?? 'Enseigne inconnue';
+        $responsible = $proposal->runner_user_id
+            ? "<@{$proposal->runner_user_id}>"
+            : ($proposal->orderer_user_id ? "<@{$proposal->orderer_user_id}>" : '_non assigne_');
+        $orderCount = $proposal->orders_count ?? $proposal->orders->count();
+
+        $blocks = [
+            [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => "*{$vendorName}*\nResponsable: {$responsible} | Commandes: {$orderCount}",
+                ],
+            ],
+        ];
+
+        $actionElements = [];
+
+        if ($session->isOpen()) {
+            $actionElements[] = $this->button('Commander ici', SlackActions::DASHBOARD_ORDER_HERE, (string) $proposal->id, 'primary');
+
+            if (! $proposal->runner_user_id && ! $proposal->orderer_user_id) {
+                $actionElements[] = $this->button('Je prends en charge', SlackActions::DASHBOARD_CLAIM_RESPONSIBLE, (string) $proposal->id);
+            }
+        }
+
+        if ($orderCount > 0) {
+            $actionElements[] = $this->button('Voir commandes', SlackActions::DASHBOARD_VIEW_ORDERS, (string) $proposal->id);
+        }
+
+        if (! empty($actionElements)) {
+            $blocks[] = [
+                'type' => 'actions',
+                'elements' => $actionElements,
+            ];
+        }
+
+        return $blocks;
+    }
+
     private function vendorBlocks(?Vendor $vendor = null): array
     {
         return [

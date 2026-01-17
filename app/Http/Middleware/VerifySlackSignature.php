@@ -12,8 +12,6 @@ class VerifySlackSignature
 {
     public function handle(Request $request, Closure $next): Response
     {
-        ray($request->all());
-        ray($request->header())->blue();
         $timestamp = $request->header('x-slack-request-timestamp');
         $signature = $request->header('x-slack-signature');
 

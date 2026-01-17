@@ -3,6 +3,7 @@
 namespace App\Services\Slack;
 
 use App\Actions\LunchSession\CloseLunchSession;
+use App\Actions\LunchSession\CreateLunchSession;
 use App\Actions\Order\CreateOrder;
 use App\Actions\Order\UpdateOrder;
 use App\Actions\Vendor\CreateVendor;
@@ -16,6 +17,7 @@ use App\Models\LunchSession;
 use App\Models\Order;
 use App\Models\Vendor;
 use App\Models\VendorProposal;
+use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -28,6 +30,7 @@ class SlackInteractionHandler
         private readonly SlackMessenger $messenger,
         private readonly SlackBlockBuilder $blocks,
         private readonly CloseLunchSession $closeLunchSession,
+        private readonly CreateLunchSession $createLunchSession,
         private readonly ProposeVendor $proposeVendor,
         private readonly AssignRole $assignRole,
         private readonly DelegateRole $delegateRole,
@@ -40,6 +43,33 @@ class SlackInteractionHandler
     public function handleEvent(array $payload): void
     {
         Log::info('Slack event received.', ['type' => $payload['type'] ?? null]);
+    }
+
+    public function handleLunchDashboard(string $userId, string $channelId, string $triggerId): void
+    {
+        $timezone = config('lunch.timezone', 'Europe/Paris');
+        $today = Carbon::now($timezone)->toDateString();
+        $deadlineTime = config('lunch.deadline_time', '11:30');
+        $deadlineAt = Carbon::parse("{$today} {$deadlineTime}", $timezone);
+
+        $session = $this->createLunchSession->handle($today, $channelId, $deadlineAt);
+
+        $proposals = VendorProposal::query()
+            ->where('lunch_session_id', $session->id)
+            ->with(['vendor', 'orders'])
+            ->withCount('orders')
+            ->get()
+            ->all();
+
+        $userOrder = Order::query()
+            ->whereIn('vendor_proposal_id', array_map(fn ($p) => $p->id, $proposals))
+            ->where('provider_user_id', $userId)
+            ->first();
+
+        $canClose = $this->canCloseSession($session, $userId);
+
+        $view = $this->blocks->lunchDashboardModal($session, $proposals, $userOrder, $canClose);
+        $this->messenger->openModal($triggerId, $view);
     }
 
     public function handleInteractivity(array $payload): Response
@@ -210,6 +240,84 @@ class SlackInteractionHandler
                 $metadata = $proposal->lunch_session_id ? ['lunch_session_id' => $proposal->lunch_session_id] : [];
                 $view = $this->blocks->editVendorModal($vendor, $metadata);
                 $this->messenger->openModal($triggerId, $view);
+
+                return;
+            case SlackActions::DASHBOARD_PROPOSE_VENDOR:
+                $session = LunchSession::find($value);
+                if (! $session || ! $this->ensureSessionOpen($session, $channelId, $userId)) {
+                    return;
+                }
+                $vendors = Vendor::query()->where('active', true)->orderBy('name')->get()->all();
+                if (empty($vendors)) {
+                    $this->messenger->postEphemeral($channelId, $userId, 'Aucune enseigne active pour le moment.');
+
+                    return;
+                }
+                $view = $this->blocks->proposalModal($session, $vendors);
+                $this->messenger->openModal($triggerId, $view);
+
+                return;
+            case SlackActions::DASHBOARD_ORDER_HERE:
+                $proposal = VendorProposal::with('lunchSession')->find($value);
+                if (! $proposal || ! $this->ensureSessionOpen($proposal->lunchSession, $channelId, $userId)) {
+                    return;
+                }
+                $view = $this->blocks->orderModal($proposal, null, false, false);
+                $this->messenger->openModal($triggerId, $view);
+
+                return;
+            case SlackActions::DASHBOARD_CLAIM_RESPONSIBLE:
+                $proposal = VendorProposal::with('lunchSession')->find($value);
+                if (! $proposal || ! $this->ensureSessionOpen($proposal->lunchSession, $channelId, $userId)) {
+                    return;
+                }
+                $assigned = $this->assignRole->handle($proposal, 'runner', $userId);
+                if ($assigned) {
+                    $this->messenger->updateProposalMessage($proposal);
+                } else {
+                    $this->messenger->postEphemeral($channelId, $userId, 'Role deja attribue.');
+                }
+
+                return;
+            case SlackActions::DASHBOARD_VIEW_ORDERS:
+                $proposal = VendorProposal::with('lunchSession')->find($value);
+                if (! $proposal) {
+                    return;
+                }
+                $this->messenger->postSummary($proposal);
+
+                return;
+            case SlackActions::DASHBOARD_MY_ORDER:
+                $proposal = VendorProposal::with('lunchSession')->find($value);
+                if (! $proposal) {
+                    return;
+                }
+                $order = Order::query()
+                    ->where('vendor_proposal_id', $proposal->id)
+                    ->where('provider_user_id', $userId)
+                    ->first();
+                if (! $order) {
+                    $this->messenger->postEphemeral($channelId, $userId, 'Aucune commande a modifier.');
+
+                    return;
+                }
+                $allowFinal = $this->canManageFinalPrices($proposal, $userId);
+                $view = $this->blocks->orderModal($proposal, $order, $allowFinal, true);
+                $this->messenger->openModal($triggerId, $view);
+
+                return;
+            case SlackActions::DASHBOARD_CLOSE_SESSION:
+                $session = LunchSession::find($value);
+                if (! $session) {
+                    return;
+                }
+                if (! $this->canCloseSession($session, $userId)) {
+                    $this->messenger->postEphemeral($channelId, $userId, 'Seul le runner/orderer ou un admin peut cloturer.');
+
+                    return;
+                }
+                $this->closeLunchSession->handle($session);
+                $this->messenger->postClosureSummary($session);
 
                 return;
             default:
