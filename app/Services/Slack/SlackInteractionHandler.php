@@ -10,12 +10,14 @@ use App\Actions\Vendor\UpdateVendor;
 use App\Actions\VendorProposal\AssignRole;
 use App\Actions\VendorProposal\DelegateRole;
 use App\Actions\VendorProposal\ProposeVendor;
+use App\Authorization\Actor;
 use App\Enums\FulfillmentType;
 use App\Models\LunchSession;
 use App\Models\Order;
 use App\Models\Vendor;
 use App\Models\VendorProposal;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Response;
@@ -141,7 +143,7 @@ class SlackInteractionHandler
 
                     return;
                 }
-                $allowFinal = $this->isRunnerOrOrderer($proposal, $userId) || $this->messenger->isAdmin($userId);
+                $allowFinal = $this->canManageFinalPrices($proposal, $userId);
                 $view = $this->blocks->orderModal($proposal, $order, $allowFinal, true);
                 $this->messenger->openModal($triggerId, $view);
 
@@ -151,7 +153,7 @@ class SlackInteractionHandler
                 if (! $proposal) {
                     return;
                 }
-                if (! $this->isRunnerOrOrderer($proposal, $userId) && ! $this->messenger->isAdmin($userId)) {
+                if (! $this->canManageFinalPrices($proposal, $userId)) {
                     $this->messenger->postEphemeral($channelId, $userId, 'Seul le runner/orderer peut voir le recapitulatif.');
 
                     return;
@@ -179,7 +181,7 @@ class SlackInteractionHandler
                 if (! $proposal) {
                     return;
                 }
-                if (! $this->isRunnerOrOrderer($proposal, $userId) && ! $this->messenger->isAdmin($userId)) {
+                if (! $this->canManageFinalPrices($proposal, $userId)) {
                     $this->messenger->postEphemeral($channelId, $userId, 'Seul le runner/orderer peut ajuster les prix.');
 
                     return;
@@ -404,7 +406,7 @@ class SlackInteractionHandler
             return response('', 200);
         }
 
-        $allowFinal = $this->isRunnerOrOrderer($proposal, $userId) || $this->messenger->isAdmin($userId);
+        $allowFinal = $this->canManageFinalPrices($proposal, $userId);
         if (! $proposal->lunchSession->isOpen() && ! $allowFinal) {
             $this->messenger->postEphemeral($proposal->lunchSession->provider_channel_id, $userId, 'Les commandes sont verrouillees.');
 
@@ -463,7 +465,7 @@ class SlackInteractionHandler
             return response('', 200);
         }
 
-        if (! $this->isRunnerOrOrderer($proposal, $userId) && ! $this->messenger->isAdmin($userId)) {
+        if (! $this->canManageFinalPrices($proposal, $userId)) {
             return response('', 200);
         }
 
@@ -539,16 +541,16 @@ class SlackInteractionHandler
 
     private function canManageVendor(Vendor $vendor, string $userId): bool
     {
-        if ($vendor->created_by_provider_user_id === $userId) {
-            return true;
-        }
+        $actor = $this->buildActor($userId);
 
-        return $this->messenger->isAdmin($userId);
+        return Gate::forUser($actor)->allows('update', $vendor);
     }
 
     private function canCloseSession(LunchSession $session, string $userId): bool
     {
-        if ($this->messenger->isAdmin($userId)) {
+        $actor = $this->buildActor($userId);
+
+        if ($actor->isAdmin) {
             return true;
         }
 
@@ -564,6 +566,18 @@ class SlackInteractionHandler
     private function isRunnerOrOrderer(VendorProposal $proposal, string $userId): bool
     {
         return $proposal->hasRole($userId);
+    }
+
+    private function canManageFinalPrices(VendorProposal $proposal, string $userId): bool
+    {
+        $actor = $this->buildActor($userId);
+
+        if ($actor->isAdmin) {
+            return true;
+        }
+
+        return $proposal->runner_user_id === $actor->providerUserId
+            || $proposal->orderer_user_id === $actor->providerUserId;
     }
 
     private function roleForUser(VendorProposal $proposal, string $userId): ?string
@@ -631,5 +645,10 @@ class SlackInteractionHandler
         if ($channelId) {
             $this->messenger->postEphemeral($channelId, $userId, $message, $threadTs);
         }
+    }
+
+    private function buildActor(string $userId): Actor
+    {
+        return new Actor($userId, $this->messenger->isAdmin($userId));
     }
 }
