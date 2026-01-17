@@ -50,12 +50,42 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Request Logging Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure how HTTP requests are logged by the LogRequest middleware.
+    |
+    */
+
+    'request_logging' => [
+        'enabled' => env('LOG_REQUESTS', true),
+        'log_body' => env('LOG_REQUEST_BODY', false),
+        'excluded_paths' => [
+            'up',
+            'health',
+            'livewire*',
+        ],
+        'excluded_route_names' => [
+            'sanctum.csrf-cookie',
+        ],
+    ],
+
     'channels' => [
 
         'stack' => [
             'driver' => 'stack',
             'channels' => explode(',', (string) env('LOG_STACK', 'single')),
             'ignore_exceptions' => false,
+        ],
+
+        'requests' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/requests.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_REQUESTS_DAYS', 14),
+            'replace_placeholders' => true,
         ],
 
         'single' => [
