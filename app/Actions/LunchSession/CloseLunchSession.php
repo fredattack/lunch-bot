@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Lunch;
+namespace App\Actions\LunchSession;
 
 use App\Enums\LunchSessionStatus;
 use App\Enums\ProposalStatus;

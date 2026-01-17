@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Lunch;
+namespace App\Actions\VendorProposal;
 
 use App\Enums\ProposalStatus;
 use App\Models\VendorProposal;

@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Unit\Actions\Lunch;
+namespace Tests\Unit\Actions\VendorProposal;
 
-use App\Actions\Lunch\DelegateRole;
+use App\Actions\VendorProposal\DelegateRole;
 use App\Models\LunchSession;
 use App\Models\VendorProposal;
 use Illuminate\Foundation\Testing\RefreshDatabase;

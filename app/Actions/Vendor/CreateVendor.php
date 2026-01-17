@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Lunch;
+namespace App\Actions\Vendor;
 
 use App\Models\Vendor;
 

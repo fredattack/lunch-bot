@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Slack;
+namespace App\Services\Slack;
 
-use App\Actions\Lunch\AssignRole;
-use App\Actions\Lunch\CloseLunchSession;
-use App\Actions\Lunch\CreateOrder;
-use App\Actions\Lunch\CreateVendor;
-use App\Actions\Lunch\DelegateRole;
-use App\Actions\Lunch\ProposeVendor;
-use App\Actions\Lunch\UpdateOrder;
-use App\Actions\Lunch\UpdateVendor;
+use App\Actions\LunchSession\CloseLunchSession;
+use App\Actions\Order\CreateOrder;
+use App\Actions\Order\UpdateOrder;
+use App\Actions\Vendor\CreateVendor;
+use App\Actions\Vendor\UpdateVendor;
+use App\Actions\VendorProposal\AssignRole;
+use App\Actions\VendorProposal\DelegateRole;
+use App\Actions\VendorProposal\ProposeVendor;
 use App\Enums\FulfillmentType;
 use App\Models\LunchSession;
 use App\Models\Order;

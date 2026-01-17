@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Unit\Actions\Lunch;
+namespace Tests\Unit\Actions\VendorProposal;
 
-use App\Actions\Lunch\AssignRole;
+use App\Actions\VendorProposal\AssignRole;
 use App\Enums\ProposalStatus;
 use App\Models\LunchSession;
 use App\Models\VendorProposal;

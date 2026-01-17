@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Unit\Actions\Lunch;
+namespace Tests\Unit\Actions\VendorProposal;
 
-use App\Actions\Lunch\ProposeVendor;
+use App\Actions\VendorProposal\ProposeVendor;
 use App\Enums\FulfillmentType;
 use App\Enums\ProposalStatus;
 use App\Models\LunchSession;

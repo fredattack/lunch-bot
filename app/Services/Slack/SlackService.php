@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Slack;
+namespace App\Services\Slack;
 
 use App\Models\Organization;
 use Illuminate\Http\Client\PendingRequest;

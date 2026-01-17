@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Slack\SlackInteractionHandler;
+use App\Services\Slack\SlackInteractionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 

@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Unit\Actions\Lunch;
+namespace Tests\Unit\Actions\Order;
 
-use App\Actions\Lunch\CreateOrder;
+use App\Actions\Order\CreateOrder;
 use App\Models\LunchSession;
 use App\Models\Order;
 use App\Models\VendorProposal;
