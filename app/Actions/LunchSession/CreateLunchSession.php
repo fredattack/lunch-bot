@@ -11,7 +11,7 @@ class CreateLunchSession
     public function handle(string $date, string $channelId, Carbon $deadlineAt, string $provider = 'slack'): LunchSession
     {
         $session = LunchSession::firstOrCreate(
-            ['date' => $date, 'provider_channel_id' => $channelId],
+            ['date' => Carbon::parse($date)->startOfDay(), 'provider_channel_id' => $channelId],
             [
                 'provider' => $provider,
                 'deadline_at' => $deadlineAt,

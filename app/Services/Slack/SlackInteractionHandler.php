@@ -15,10 +15,10 @@ use App\Models\LunchSession;
 use App\Models\Order;
 use App\Models\Vendor;
 use App\Models\VendorProposal;
-use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Symfony\Component\HttpFoundation\Response;
 
 class SlackInteractionHandler
 {
