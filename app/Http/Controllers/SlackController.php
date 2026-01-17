@@ -10,6 +10,7 @@ class SlackController extends Controller
 {
     public function events(Request $request, SlackInteractionHandler $handler): Response
     {
+        ray($request->all());
         if ($request->header('X-Slack-Retry-Num')) {
             return response('', 200);
         }

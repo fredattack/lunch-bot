@@ -5,7 +5,7 @@
 SHELL := /bin/bash
 
 # Laravel default port
-APP_PORT := 8000
+APP_PORT := 4480
 
 # Colors for output
 RED := \033[0;31m
