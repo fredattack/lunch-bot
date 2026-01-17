@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\LunchSessionStatus;
 use App\Models\LunchSession;
+use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,6 +18,7 @@ class LunchSessionFactory extends Factory
     public function definition(): array
     {
         return [
+            'organization_id' => Organization::factory()->withInstallation(),
             'date' => fake()->dateTimeBetween('now', '+1 week'),
             'provider' => 'slack',
             'provider_channel_id' => 'C'.fake()->regexify('[A-Z0-9]{10}'),

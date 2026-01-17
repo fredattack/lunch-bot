@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'slack.signature' => \App\Http\Middleware\VerifySlackSignature::class,
+            'slack.organization' => \App\Http\Middleware\ResolveOrganization::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -32,6 +32,7 @@ class ProposeVendor
         }
 
         return VendorProposal::create([
+            'organization_id' => $session->organization_id,
             'lunch_session_id' => $session->id,
             'vendor_id' => $vendor->id,
             'fulfillment_type' => $fulfillment,

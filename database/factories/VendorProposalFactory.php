@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\FulfillmentType;
 use App\Enums\ProposalStatus;
 use App\Models\LunchSession;
+use App\Models\Organization;
 use App\Models\Vendor;
 use App\Models\VendorProposal;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -20,6 +21,7 @@ class VendorProposalFactory extends Factory
     public function definition(): array
     {
         return [
+            'organization_id' => Organization::factory()->withInstallation(),
             'lunch_session_id' => LunchSession::factory(),
             'vendor_id' => Vendor::factory(),
             'fulfillment_type' => fake()->randomElement(FulfillmentType::cases()),

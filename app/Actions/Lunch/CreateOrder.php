@@ -20,6 +20,7 @@ class CreateOrder
         }
 
         return Order::create([
+            'organization_id' => $proposal->organization_id,
             'vendor_proposal_id' => $proposal->id,
             'provider_user_id' => $userId,
             'description' => $data['description'],

@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Order;
+use App\Models\Organization;
 use App\Models\VendorProposal;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -17,6 +18,7 @@ class OrderFactory extends Factory
     public function definition(): array
     {
         return [
+            'organization_id' => Organization::factory()->withInstallation(),
             'vendor_proposal_id' => VendorProposal::factory(),
             'provider_user_id' => 'U'.fake()->regexify('[A-Z0-9]{10}'),
             'description' => fake()->sentence(),

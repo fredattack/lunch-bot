@@ -2,6 +2,7 @@
 
 namespace App\Slack;
 
+use App\Models\Organization;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -85,9 +86,20 @@ class SlackService
         return (bool) ($user['is_admin'] ?? false) || (bool) ($user['is_owner'] ?? false);
     }
 
+    private function resolveToken(): ?string
+    {
+        $organization = Organization::current();
+
+        if ($organization?->installation?->bot_token) {
+            return $organization->installation->bot_token;
+        }
+
+        return config('slack.bot_token');
+    }
+
     private function api(string $method, array $payload): array
     {
-        $token = config('slack.bot_token');
+        $token = $this->resolveToken();
 
         if (! $token) {
             Log::error('Slack bot token missing.');

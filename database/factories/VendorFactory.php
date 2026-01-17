@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Organization;
 use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -16,6 +17,7 @@ class VendorFactory extends Factory
     public function definition(): array
     {
         return [
+            'organization_id' => Organization::factory()->withInstallation(),
             'name' => fake()->company(),
             'url_menu' => fake()->url(),
             'notes' => fake()->optional()->sentence(),
