@@ -2,6 +2,8 @@
 # deploy.sh - Production deployment script for DigitalOcean Droplet
 set -e
 
+export COMPOSER_ALLOW_SUPERUSER=1
+
 cd /var/www/lunch-bot
 
 echo "Starting deployment..."
@@ -20,7 +22,7 @@ composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
 # Install & build frontend
 echo "Building frontend assets..."
-npm ci
+npm install --omit=dev
 npm run build
 
 # Run migrations
@@ -34,9 +36,13 @@ php artisan route:cache
 php artisan view:cache
 php artisan event:cache
 
+# Fix permissions
+chown -R www-data:www-data /var/www/lunch-bot
+chmod -R 775 storage bootstrap/cache
+
 # Restart queue workers
 echo "Restarting queue workers..."
-sudo supervisorctl restart lunch-bot-worker:*
+supervisorctl restart lunch-bot-worker:*
 
 # Exit maintenance mode
 echo "Disabling maintenance mode..."
