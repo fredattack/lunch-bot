@@ -58,6 +58,14 @@ class SlackService
         ]);
     }
 
+    public function pushModal(string $triggerId, array $view): array
+    {
+        return $this->api('views.push', [
+            'trigger_id' => $triggerId,
+            'view' => $view,
+        ]);
+    }
+
     public function updateModal(string $viewId, array $view): array
     {
         return $this->api('views.update', [

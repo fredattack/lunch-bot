@@ -15,6 +15,8 @@ class Vendor extends Model
     protected $fillable = [
         'organization_id',
         'name',
+        'cuisine_type',
+        'url_website',
         'url_menu',
         'notes',
         'active',
