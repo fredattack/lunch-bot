@@ -20,7 +20,7 @@ return new class extends Migration
             $table->json('audit_log')->nullable();
             $table->timestamps();
 
-            $table->unique(['organization_id', 'vendor_proposal_id', 'provider_user_id']);
+            $table->unique(['organization_id', 'vendor_proposal_id', 'provider_user_id'], 'orders_org_proposal_user_unique');
             $table->index('provider_user_id');
         });
     }
