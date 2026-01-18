@@ -20,9 +20,9 @@ git pull origin main
 echo "Installing Composer dependencies..."
 composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
-# Install & build frontend
+# Install & build frontend (need dev deps for vite)
 echo "Building frontend assets..."
-npm install --omit=dev
+npm install
 npm run build
 
 # Run migrations
