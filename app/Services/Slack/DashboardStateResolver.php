@@ -16,9 +16,8 @@ class DashboardStateResolver
     public function resolve(LunchSession $session, string $userId, bool $isAdmin = false): DashboardContext
     {
         $timezone = config('lunch.timezone', 'Europe/Paris');
-        $today = Carbon::now($timezone)->startOfDay();
-        $sessionDate = $session->date->startOfDay();
-        $isToday = $sessionDate->equalTo($today);
+        $today = Carbon::now($timezone);
+        $isToday = $session->date->isSameDay($today);
 
         $proposals = $this->loadProposals($session);
         $openProposals = $this->filterOpenProposals($proposals);
@@ -40,7 +39,7 @@ class DashboardStateResolver
             state: $state,
             session: $session,
             userId: $userId,
-            date: $sessionDate,
+            date: $session->date,
             isToday: $isToday,
             isAdmin: $isAdmin,
             workspaceName: $workspaceName,
