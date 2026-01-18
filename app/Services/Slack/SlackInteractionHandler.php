@@ -71,7 +71,6 @@ class SlackInteractionHandler
 
     public function handleInteractivity(array $payload): Response
     {
-        ray($payload)->blue();
         $type = $payload['type'] ?? '';
 
         if ($type === 'block_actions') {
@@ -437,23 +436,15 @@ class SlackInteractionHandler
 
                 return;
             case SlackAction::DashboardProposeVendor->value:
-                ray("DashboardProposeVendor - value: {$value}")->green();
                 $session = LunchSession::find($value);
                 if (! $session) {
-                    ray('Session not found')->red();
-
                     return;
                 }
-                ray('Session found', $session->toArray())->green();
                 $sessionChannel = $session->provider_channel_id;
                 if (! $this->ensureSessionOpen($session, $sessionChannel, $userId)) {
-                    ray('Session not open')->red();
-
                     return;
                 }
-                ray('Opening proposeRestaurantModal')->green();
                 $view = $this->blocks->proposeRestaurantModal($session);
-                ray($view)->purple();
                 $this->messenger->pushModal($triggerId, $view);
 
                 return;
