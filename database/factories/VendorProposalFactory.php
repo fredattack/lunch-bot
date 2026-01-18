@@ -54,4 +54,14 @@ class VendorProposalFactory extends Factory
     {
         return $this->state(fn () => ['status' => ProposalStatus::Ordering]);
     }
+
+    public function pickup(): static
+    {
+        return $this->state(fn () => ['fulfillment_type' => FulfillmentType::Pickup]);
+    }
+
+    public function delivery(): static
+    {
+        return $this->state(fn () => ['fulfillment_type' => FulfillmentType::Delivery]);
+    }
 }
