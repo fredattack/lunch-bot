@@ -163,16 +163,16 @@ class SlackBlockBuilder
                         'type' => 'static_select',
                         'action_id' => 'fulfillment_type',
                         'initial_option' => [
-                            'text' => ['type' => 'plain_text', 'text' => 'Sur place (pickup)'],
+                            'text' => ['type' => 'plain_text', 'text' => 'A Emporter'],
                             'value' => FulfillmentType::Pickup->value,
                         ],
                         'options' => [
                             [
-                                'text' => ['type' => 'plain_text', 'text' => 'Sur place (pickup)'],
+                                'text' => ['type' => 'plain_text', 'text' => 'A Emporter'],
                                 'value' => FulfillmentType::Pickup->value,
                             ],
                             [
-                                'text' => ['type' => 'plain_text', 'text' => 'Livraison (delivery)'],
+                                'text' => ['type' => 'plain_text', 'text' => 'Livraison'],
                                 'value' => FulfillmentType::Delivery->value,
                             ],
                         ],
@@ -682,16 +682,16 @@ class SlackBlockBuilder
                         'type' => 'static_select',
                         'action_id' => 'fulfillment_type',
                         'initial_option' => [
-                            'text' => ['type' => 'plain_text', 'text' => 'Sur place (pickup)'],
+                            'text' => ['type' => 'plain_text', 'text' => 'A Emporter'],
                             'value' => FulfillmentType::Pickup->value,
                         ],
                         'options' => [
                             [
-                                'text' => ['type' => 'plain_text', 'text' => 'Sur place (pickup)'],
+                                'text' => ['type' => 'plain_text', 'text' => 'A Emporter'],
                                 'value' => FulfillmentType::Pickup->value,
                             ],
                             [
-                                'text' => ['type' => 'plain_text', 'text' => 'Livraison (delivery)'],
+                                'text' => ['type' => 'plain_text', 'text' => 'Livraison'],
                                 'value' => FulfillmentType::Delivery->value,
                             ],
                         ],
