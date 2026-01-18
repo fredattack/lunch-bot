@@ -15,6 +15,11 @@ class Vendor extends Model implements HasMedia
     use HasFactory;
     use InteractsWithMedia;
 
+    protected $attributes = [
+        'fulfillment_types' => '["pickup"]',
+        'allow_individual_order' => false,
+    ];
+
     protected $fillable = [
         'organization_id',
         'name',
