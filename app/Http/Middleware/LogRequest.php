@@ -17,6 +17,7 @@ class LogRequest
 {
     public function handle(Request $request, Closure $next): Response|JsonResponse|RedirectResponse|BinaryFileResponse|StreamedResponse
     {
+        ray()->clearScreen();
         if ($this->shouldSkipLogging($request)) {
             /** @var Response|JsonResponse|RedirectResponse|BinaryFileResponse|StreamedResponse */
             return $next($request);
@@ -127,7 +128,7 @@ class LogRequest
     }
 
     /**
-     * @param array<mixed> $data
+     * @param  array<mixed>  $data
      * @return array<mixed>
      */
     private function sanitizeData(array $data): array

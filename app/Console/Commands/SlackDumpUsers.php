@@ -27,8 +27,9 @@ class SlackDumpUsers extends Command
     {
         $token = $this->option('token') ?: env('SLACK_BOT_TOKEN');
 
-        if (!$token) {
+        if (! $token) {
             $this->error('Missing Slack token. Set SLACK_BOT_TOKEN in .env or pass --token=...');
+
             return self::FAILURE;
         }
 
@@ -55,28 +56,31 @@ class SlackDumpUsers extends Command
                 ->retry(3, 500)
                 ->get('https://slack.com/api/users.list', $query);
 
-            if (!$response->ok()) {
-                $this->error('HTTP error from Slack: ' . $response->status());
+            if (! $response->ok()) {
+                $this->error('HTTP error from Slack: '.$response->status());
                 $this->line($response->body());
+
                 return self::FAILURE;
             }
 
             $payload = $response->json();
 
-            if (!is_array($payload) || !($payload['ok'] ?? false)) {
+            if (! is_array($payload) || ! ($payload['ok'] ?? false)) {
                 $this->error('Slack API returned ok=false.');
                 $this->line(json_encode($payload, JSON_PRETTY_PRINT));
+
                 return self::FAILURE;
             }
 
             $members = $payload['members'] ?? [];
-            if (!is_array($members)) {
+            if (! is_array($members)) {
                 $this->error('Unexpected Slack payload: members is not an array.');
+
                 return self::FAILURE;
             }
 
             foreach ($members as $u) {
-                if (!is_array($u)) {
+                if (! is_array($u)) {
                     continue;
                 }
 
@@ -127,6 +131,7 @@ class SlackDumpUsers extends Command
         $json = json_encode($data, $jsonFlags);
         if ($json === false) {
             $this->error('Failed to encode JSON.');
+
             return self::FAILURE;
         }
 
