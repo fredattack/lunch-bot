@@ -25,6 +25,7 @@ use App\Services\Slack\DashboardStateResolver;
 use App\Services\Slack\SlackBlockBuilder;
 use App\Services\Slack\SlackInteractionHandler;
 use App\Services\Slack\SlackMessenger;
+use App\Services\Slack\SlackService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Mockery\MockInterface;
@@ -36,6 +37,8 @@ class SlackInteractionHandlerTest extends TestCase
     use RefreshDatabase;
 
     private SlackInteractionHandler $handler;
+
+    private MockInterface $slack;
 
     private MockInterface $messenger;
 
@@ -52,11 +55,13 @@ class SlackInteractionHandlerTest extends TestCase
         $this->organization = Organization::factory()->withInstallation()->create();
         Organization::setCurrent($this->organization);
 
+        $this->slack = Mockery::mock(SlackService::class);
         $this->messenger = Mockery::mock(SlackMessenger::class);
         $this->blocks = Mockery::mock(SlackBlockBuilder::class);
         $this->dashboardBlocks = Mockery::mock(DashboardBlockBuilder::class);
 
         $this->handler = new SlackInteractionHandler(
+            $this->slack,
             $this->messenger,
             $this->blocks,
             $this->dashboardBlocks,

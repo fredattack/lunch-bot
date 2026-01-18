@@ -18,13 +18,14 @@ class ProposeRestaurant
      *     name: string,
      *     cuisine_type?: ?string,
      *     url_website?: ?string,
-     *     url_menu?: ?string
+     *     url_menu?: ?string,
+     *     fulfillment_types?: array<string>,
+     *     allow_individual_order?: bool
      * } $vendorData
      */
     public function handle(
         LunchSession $session,
         array $vendorData,
-        FulfillmentType $fulfillment,
         string $proposedByUserId,
         string $deadlineTime = '11:30',
         ?string $note = null,
@@ -34,7 +35,12 @@ class ProposeRestaurant
             throw new InvalidArgumentException('La session de lunch est fermee.');
         }
 
-        return DB::transaction(function () use ($session, $vendorData, $fulfillment, $proposedByUserId, $deadlineTime, $note, $helpRequested) {
+        $fulfillmentTypes = $vendorData['fulfillment_types'] ?? [FulfillmentType::Pickup->value];
+        if (empty($fulfillmentTypes)) {
+            throw new InvalidArgumentException('Au moins un type de commande doit etre selectionne.');
+        }
+
+        return DB::transaction(function () use ($session, $vendorData, $fulfillmentTypes, $proposedByUserId, $deadlineTime, $note, $helpRequested) {
             $vendor = $this->findOrCreateVendor($session, $vendorData, $proposedByUserId);
 
             $existing = VendorProposal::query()
@@ -46,14 +52,14 @@ class ProposeRestaurant
                 throw new InvalidArgumentException('Ce restaurant a deja ete propose pour cette session.');
             }
 
-            $runnerUserId = $fulfillment === FulfillmentType::Pickup ? $proposedByUserId : null;
-            $ordererUserId = $fulfillment === FulfillmentType::Delivery ? $proposedByUserId : null;
+            $primaryFulfillment = FulfillmentType::from($fulfillmentTypes[0]);
+            [$runnerUserId, $ordererUserId] = $this->resolveRoleAssignment($primaryFulfillment, $proposedByUserId);
 
             return VendorProposal::create([
                 'organization_id' => $session->organization_id,
                 'lunch_session_id' => $session->id,
                 'vendor_id' => $vendor->id,
-                'fulfillment_type' => $fulfillment,
+                'fulfillment_type' => $primaryFulfillment,
                 'ordering_mode' => OrderingMode::Shared,
                 'deadline_time' => $deadlineTime,
                 'help_requested' => $helpRequested,
@@ -67,11 +73,25 @@ class ProposeRestaurant
     }
 
     /**
+     * @return array{?string, ?string} [runnerUserId, ordererUserId]
+     */
+    private function resolveRoleAssignment(FulfillmentType $fulfillment, string $proposedByUserId): array
+    {
+        return match ($fulfillment) {
+            FulfillmentType::Pickup => [$proposedByUserId, null],
+            FulfillmentType::Delivery => [null, $proposedByUserId],
+            FulfillmentType::OnSite => [null, null],
+        };
+    }
+
+    /**
      * @param array{
      *     name: string,
      *     cuisine_type?: ?string,
      *     url_website?: ?string,
-     *     url_menu?: ?string
+     *     url_menu?: ?string,
+     *     fulfillment_types?: array<string>,
+     *     allow_individual_order?: bool
      * } $data
      */
     private function findOrCreateVendor(LunchSession $session, array $data, string $createdByUserId): Vendor
@@ -91,6 +111,8 @@ class ProposeRestaurant
             'organization_id' => $session->organization_id,
             'name' => $data['name'],
             'cuisine_type' => $data['cuisine_type'] ?? null,
+            'fulfillment_types' => $data['fulfillment_types'] ?? [FulfillmentType::Pickup->value],
+            'allow_individual_order' => $data['allow_individual_order'] ?? false,
             'url_website' => $data['url_website'] ?? null,
             'url_menu' => $data['url_menu'] ?? null,
             'active' => true,
@@ -103,7 +125,9 @@ class ProposeRestaurant
      *     name: string,
      *     cuisine_type?: ?string,
      *     url_website?: ?string,
-     *     url_menu?: ?string
+     *     url_menu?: ?string,
+     *     fulfillment_types?: array<string>,
+     *     allow_individual_order?: bool
      * } $data
      */
     private function updateVendorIfNeeded(Vendor $vendor, array $data): void
@@ -112,6 +136,14 @@ class ProposeRestaurant
 
         if (! empty($data['cuisine_type']) && empty($vendor->cuisine_type)) {
             $updates['cuisine_type'] = $data['cuisine_type'];
+        }
+
+        if (! empty($data['fulfillment_types'])) {
+            $updates['fulfillment_types'] = $data['fulfillment_types'];
+        }
+
+        if (isset($data['allow_individual_order'])) {
+            $updates['allow_individual_order'] = $data['allow_individual_order'];
         }
 
         if (! empty($data['url_website']) && empty($vendor->url_website)) {

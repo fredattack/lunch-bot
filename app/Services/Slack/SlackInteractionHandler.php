@@ -31,6 +31,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SlackInteractionHandler
 {
     public function __construct(
+        private readonly SlackService $slack,
         private readonly SlackMessenger $messenger,
         private readonly SlackBlockBuilder $blocks,
         private readonly DashboardBlockBuilder $dashboardBlocks,
@@ -641,42 +642,70 @@ class SlackInteractionHandler
 
         $state = $payload['view']['state']['values'] ?? [];
         $name = $this->stateValue($state, 'name', 'name');
-        $cuisineType = $this->stateValue($state, 'cuisine_type', 'cuisine_type');
-        $urlWebsite = $this->stateValue($state, 'url_website', 'url_website');
-        $urlMenu = $this->stateValue($state, 'url_menu', 'url_menu');
-        $fulfillment = $this->stateValue($state, 'fulfillment', 'fulfillment_type');
+        $fulfillmentTypes = $this->stateCheckboxValues($state, 'fulfillment_types', 'fulfillment_types');
+        $allowIndividualOrder = $this->stateCheckboxHasValue($state, 'allow_individual', 'allow_individual_order', 'allow_individual');
         $deadlineTime = $this->stateValue($state, 'deadline', 'deadline_time') ?: '11:30';
         $note = $this->stateValue($state, 'note', 'note');
         $helpRequested = $this->stateCheckboxHasValue($state, 'help', 'help_requested', 'help_requested');
+        $fileIds = $this->stateFileIds($state, 'file', 'file_upload');
 
         if (! $name) {
             return $this->viewErrorResponse(['name' => 'Nom du restaurant requis.']);
         }
 
-        if ($fulfillment && ! in_array($fulfillment, [FulfillmentType::Pickup->value, FulfillmentType::Delivery->value], true)) {
-            return $this->viewErrorResponse(['fulfillment' => 'Type invalide.']);
+        if (empty($fulfillmentTypes)) {
+            return $this->viewErrorResponse(['fulfillment_types' => 'Au moins un type doit etre selectionne.']);
         }
 
         $proposal = $this->proposeRestaurant->handle(
             $session,
             [
                 'name' => $name,
-                'cuisine_type' => $cuisineType ?: null,
-                'url_website' => $urlWebsite ?: null,
-                'url_menu' => $urlMenu ?: null,
+                'fulfillment_types' => $fulfillmentTypes,
+                'allow_individual_order' => $allowIndividualOrder,
             ],
-            FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
             $userId,
             $deadlineTime,
             $note ?: null,
             $helpRequested
         );
 
+        if (! empty($fileIds)) {
+            $this->processFileUpload($proposal->vendor, $fileIds[0]);
+        }
+
         $proposal->load(['lunchSession', 'vendor']);
 
         $orderModal = $this->blocks->orderModal($proposal, null, false, false);
 
         return $this->viewUpdateResponse($orderModal);
+    }
+
+    private function processFileUpload(Vendor $vendor, string $fileId): void
+    {
+        $fileInfo = $this->slack->getFileInfo($fileId);
+        if (! $fileInfo) {
+            return;
+        }
+
+        $urlPrivate = $fileInfo['url_private'] ?? null;
+        $mimetype = $fileInfo['mimetype'] ?? '';
+        $filename = $fileInfo['name'] ?? 'file';
+
+        if (! $urlPrivate) {
+            return;
+        }
+
+        $tempPath = $this->slack->downloadFile($urlPrivate);
+        if (! $tempPath) {
+            return;
+        }
+
+        $collection = str_starts_with($mimetype, 'image/') ? 'logo' : 'menu';
+
+        $vendor->addMedia($tempPath)
+            ->usingFileName($filename)
+            ->toMediaCollection($collection);
     }
 
     private function handleVendorCreate(array $payload, string $userId): Response
@@ -996,6 +1025,26 @@ class SlackInteractionHandler
         }
 
         return false;
+    }
+
+    /**
+     * @return array<string>
+     */
+    private function stateCheckboxValues(array $state, string $blockId, string $actionId): array
+    {
+        $selectedOptions = Arr::get($state, "{$blockId}.{$actionId}.selected_options", []);
+
+        return array_map(fn ($option) => $option['value'] ?? '', $selectedOptions);
+    }
+
+    /**
+     * @return array<string>
+     */
+    private function stateFileIds(array $state, string $blockId, string $actionId): array
+    {
+        $files = Arr::get($state, "{$blockId}.{$actionId}.files", []);
+
+        return array_map(fn ($file) => $file['id'] ?? '', $files);
     }
 
     private function decodeMetadata(string $metadata): array

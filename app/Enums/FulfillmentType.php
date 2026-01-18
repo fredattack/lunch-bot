@@ -6,4 +6,5 @@ enum FulfillmentType: string
 {
     case Pickup = 'pickup';
     case Delivery = 'delivery';
+    case OnSite = 'on_site';
 }

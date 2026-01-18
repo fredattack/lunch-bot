@@ -94,6 +94,37 @@ class SlackService
         return (bool) ($user['is_admin'] ?? false) || (bool) ($user['is_owner'] ?? false);
     }
 
+    public function getFileInfo(string $fileId): ?array
+    {
+        $response = $this->api('files.info', ['file' => $fileId]);
+
+        return $response['file'] ?? null;
+    }
+
+    public function downloadFile(string $urlPrivate): ?string
+    {
+        $token = $this->resolveToken();
+        if (! $token) {
+            return null;
+        }
+
+        $response = Http::withToken($token)->get($urlPrivate);
+
+        if (! $response->ok()) {
+            Log::error('Slack file download failed.', [
+                'url' => $urlPrivate,
+                'status' => $response->status(),
+            ]);
+
+            return null;
+        }
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'slack_file_');
+        file_put_contents($tempPath, $response->body());
+
+        return $tempPath;
+    }
+
     private function resolveToken(): ?string
     {
         $organization = Organization::current();

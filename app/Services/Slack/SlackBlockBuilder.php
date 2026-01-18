@@ -604,6 +604,7 @@ class SlackBlockBuilder
                 'text' => 'Annuler',
             ],
             'blocks' => [
+                // Restaurant name (required)
                 [
                     'type' => 'input',
                     'block_id' => 'name',
@@ -620,100 +621,74 @@ class SlackBlockBuilder
                         ],
                     ],
                 ],
+                // Fulfillment types (checkboxes multi-select)
                 [
                     'type' => 'input',
-                    'block_id' => 'cuisine_type',
-                    'optional' => true,
+                    'block_id' => 'fulfillment_types',
                     'label' => [
                         'type' => 'plain_text',
-                        'text' => 'Type de cuisine (optionnel)',
+                        'text' => 'Types disponibles',
                     ],
                     'element' => [
-                        'type' => 'plain_text_input',
-                        'action_id' => 'cuisine_type',
-                        'placeholder' => [
-                            'type' => 'plain_text',
-                            'text' => 'Ex: Japonais, Italien, ...',
-                        ],
-                    ],
-                ],
-                [
-                    'type' => 'input',
-                    'block_id' => 'url_website',
-                    'optional' => true,
-                    'label' => [
-                        'type' => 'plain_text',
-                        'text' => 'Site web (optionnel)',
-                    ],
-                    'element' => [
-                        'type' => 'plain_text_input',
-                        'action_id' => 'url_website',
-                        'placeholder' => [
-                            'type' => 'plain_text',
-                            'text' => 'https://...',
-                        ],
-                    ],
-                ],
-                [
-                    'type' => 'input',
-                    'block_id' => 'url_menu',
-                    'optional' => true,
-                    'label' => [
-                        'type' => 'plain_text',
-                        'text' => 'Menu PDF (optionnel)',
-                    ],
-                    'element' => [
-                        'type' => 'plain_text_input',
-                        'action_id' => 'url_menu',
-                        'placeholder' => [
-                            'type' => 'plain_text',
-                            'text' => 'https://...menu.pdf',
-                        ],
-                    ],
-                ],
-                [
-                    'type' => 'input',
-                    'block_id' => 'fulfillment',
-                    'label' => [
-                        'type' => 'plain_text',
-                        'text' => 'Type',
-                    ],
-                    'element' => [
-                        'type' => 'static_select',
-                        'action_id' => 'fulfillment_type',
-                        'initial_option' => [
-                            'text' => ['type' => 'plain_text', 'text' => 'A Emporter'],
-                            'value' => FulfillmentType::Pickup->value,
+                        'type' => 'checkboxes',
+                        'action_id' => 'fulfillment_types',
+                        'initial_options' => [
+                            [
+                                'text' => ['type' => 'plain_text', 'text' => 'A emporter'],
+                                'value' => FulfillmentType::Pickup->value,
+                            ],
                         ],
                         'options' => [
                             [
-                                'text' => ['type' => 'plain_text', 'text' => 'A Emporter'],
+                                'text' => ['type' => 'plain_text', 'text' => 'A emporter'],
                                 'value' => FulfillmentType::Pickup->value,
                             ],
                             [
                                 'text' => ['type' => 'plain_text', 'text' => 'Livraison'],
                                 'value' => FulfillmentType::Delivery->value,
                             ],
+                            [
+                                'text' => ['type' => 'plain_text', 'text' => 'Sur place'],
+                                'value' => FulfillmentType::OnSite->value,
+                            ],
                         ],
                     ],
                 ],
+                // Allow individual orders (checkbox)
                 [
-                    'type' => 'context',
-                    'block_id' => 'mode_info',
-                    'elements' => [
-                        [
-                            'type' => 'mrkdwn',
-                            'text' => '*Mode :* Commande groupee',
+                    'type' => 'input',
+                    'block_id' => 'allow_individual',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Options de commande',
+                    ],
+                    'element' => [
+                        'type' => 'checkboxes',
+                        'action_id' => 'allow_individual_order',
+                        'options' => [
+                            [
+                                'text' => [
+                                    'type' => 'mrkdwn',
+                                    'text' => 'Autoriser les commandes individuelles',
+                                ],
+                                'value' => 'allow_individual',
+                            ],
                         ],
                     ],
                 ],
+                // Deadline (indicative)
                 [
                     'type' => 'input',
                     'block_id' => 'deadline',
                     'optional' => true,
                     'label' => [
                         'type' => 'plain_text',
-                        'text' => 'Deadline (indicative)',
+                        'text' => 'Deadline (indicatif)',
+                    ],
+                    'hint' => [
+                        'type' => 'plain_text',
+                        'text' => 'Information indicative, n\'impacte pas la commande',
                     ],
                     'element' => [
                         'type' => 'plain_text_input',
@@ -725,6 +700,7 @@ class SlackBlockBuilder
                         ],
                     ],
                 ],
+                // Note (proposal)
                 [
                     'type' => 'input',
                     'block_id' => 'note',
@@ -743,6 +719,7 @@ class SlackBlockBuilder
                         ],
                     ],
                 ],
+                // Help requested (social signal)
                 [
                     'type' => 'input',
                     'block_id' => 'help',
@@ -763,6 +740,22 @@ class SlackBlockBuilder
                                 'value' => 'help_requested',
                             ],
                         ],
+                    ],
+                ],
+                // File upload (logo/menu)
+                [
+                    'type' => 'input',
+                    'block_id' => 'file',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Logo ou menu (optionnel)',
+                    ],
+                    'element' => [
+                        'type' => 'file_input',
+                        'action_id' => 'file_upload',
+                        'filetypes' => ['png', 'jpg', 'jpeg', 'pdf'],
+                        'max_files' => 1,
                     ],
                 ],
             ],

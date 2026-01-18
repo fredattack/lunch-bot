@@ -42,14 +42,15 @@ class ProposeRestaurantTest extends TestCase
 
         $proposal = $this->action->handle(
             $session,
-            ['name' => 'Sushi Wasabi', 'cuisine_type' => 'Japonais'],
-            FulfillmentType::Pickup,
+            [
+                'name' => 'Sushi Wasabi',
+                'fulfillment_types' => [FulfillmentType::Pickup->value],
+            ],
             $userId
         );
 
         $this->assertEquals($session->id, $proposal->lunch_session_id);
         $this->assertEquals('Sushi Wasabi', $proposal->vendor->name);
-        $this->assertEquals('Japonais', $proposal->vendor->cuisine_type);
         $this->assertEquals(FulfillmentType::Pickup, $proposal->fulfillment_type);
         $this->assertEquals(ProposalStatus::Open, $proposal->status);
         $this->assertEquals($userId, $proposal->created_by_provider_user_id);
@@ -62,8 +63,10 @@ class ProposeRestaurantTest extends TestCase
 
         $proposal = $this->action->handle(
             $session,
-            ['name' => 'Quick'],
-            FulfillmentType::Pickup,
+            [
+                'name' => 'Quick',
+                'fulfillment_types' => [FulfillmentType::Pickup->value],
+            ],
             'U_CREATOR'
         );
 
@@ -79,8 +82,27 @@ class ProposeRestaurantTest extends TestCase
 
         $this->action->handle(
             $session,
-            ['name' => 'Test Restaurant'],
-            FulfillmentType::Pickup,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [FulfillmentType::Pickup->value],
+            ],
+            'U_CREATOR'
+        );
+    }
+
+    public function test_throws_exception_for_empty_fulfillment_types(): void
+    {
+        $session = LunchSession::factory()->for($this->organization)->open()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Au moins un type de commande doit etre selectionne.');
+
+        $this->action->handle(
+            $session,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [],
+            ],
             'U_CREATOR'
         );
     }
@@ -92,8 +114,10 @@ class ProposeRestaurantTest extends TestCase
 
         $proposal = $this->action->handle(
             $session,
-            ['name' => 'Test Restaurant'],
-            FulfillmentType::Pickup,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [FulfillmentType::Pickup->value],
+            ],
             $userId
         );
 
@@ -108,13 +132,92 @@ class ProposeRestaurantTest extends TestCase
 
         $proposal = $this->action->handle(
             $session,
-            ['name' => 'Test Restaurant'],
-            FulfillmentType::Delivery,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [FulfillmentType::Delivery->value],
+            ],
             $userId
         );
 
         $this->assertNull($proposal->runner_user_id);
         $this->assertEquals($userId, $proposal->orderer_user_id);
+    }
+
+    public function test_no_role_assigned_for_on_site(): void
+    {
+        $session = LunchSession::factory()->for($this->organization)->open()->create();
+        $userId = 'U_CREATOR';
+
+        $proposal = $this->action->handle(
+            $session,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [FulfillmentType::OnSite->value],
+            ],
+            $userId
+        );
+
+        $this->assertNull($proposal->runner_user_id);
+        $this->assertNull($proposal->orderer_user_id);
+    }
+
+    public function test_uses_first_fulfillment_type_for_proposal(): void
+    {
+        $session = LunchSession::factory()->for($this->organization)->open()->create();
+
+        $proposal = $this->action->handle(
+            $session,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [
+                    FulfillmentType::Delivery->value,
+                    FulfillmentType::Pickup->value,
+                ],
+            ],
+            'U_CREATOR'
+        );
+
+        $this->assertEquals(FulfillmentType::Delivery, $proposal->fulfillment_type);
+    }
+
+    public function test_stores_fulfillment_types_on_vendor(): void
+    {
+        $session = LunchSession::factory()->for($this->organization)->open()->create();
+
+        $proposal = $this->action->handle(
+            $session,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [
+                    FulfillmentType::Pickup->value,
+                    FulfillmentType::Delivery->value,
+                    FulfillmentType::OnSite->value,
+                ],
+            ],
+            'U_CREATOR'
+        );
+
+        $this->assertEquals(
+            [FulfillmentType::Pickup->value, FulfillmentType::Delivery->value, FulfillmentType::OnSite->value],
+            $proposal->vendor->fulfillment_types
+        );
+    }
+
+    public function test_stores_allow_individual_order_on_vendor(): void
+    {
+        $session = LunchSession::factory()->for($this->organization)->open()->create();
+
+        $proposal = $this->action->handle(
+            $session,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [FulfillmentType::Pickup->value],
+                'allow_individual_order' => true,
+            ],
+            'U_CREATOR'
+        );
+
+        $this->assertTrue($proposal->vendor->allow_individual_order);
     }
 
     public function test_sets_ordering_mode_shared_always(): void
@@ -123,8 +226,10 @@ class ProposeRestaurantTest extends TestCase
 
         $proposal = $this->action->handle(
             $session,
-            ['name' => 'Test Restaurant'],
-            FulfillmentType::Pickup,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [FulfillmentType::Pickup->value],
+            ],
             'U_CREATOR'
         );
 
@@ -137,8 +242,10 @@ class ProposeRestaurantTest extends TestCase
 
         $proposal = $this->action->handle(
             $session,
-            ['name' => 'Test Restaurant'],
-            FulfillmentType::Pickup,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [FulfillmentType::Pickup->value],
+            ],
             'U_CREATOR',
             '12:00'
         );
@@ -152,8 +259,10 @@ class ProposeRestaurantTest extends TestCase
 
         $proposal = $this->action->handle(
             $session,
-            ['name' => 'Test Restaurant'],
-            FulfillmentType::Pickup,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [FulfillmentType::Pickup->value],
+            ],
             'U_CREATOR',
             '11:30',
             'Special instructions'
@@ -168,8 +277,10 @@ class ProposeRestaurantTest extends TestCase
 
         $proposal = $this->action->handle(
             $session,
-            ['name' => 'Test Restaurant'],
-            FulfillmentType::Pickup,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [FulfillmentType::Pickup->value],
+            ],
             'U_CREATOR',
             '11:30',
             null,
@@ -185,8 +296,10 @@ class ProposeRestaurantTest extends TestCase
 
         $proposal = $this->action->handle(
             $session,
-            ['name' => 'Test Restaurant'],
-            FulfillmentType::Pickup,
+            [
+                'name' => 'Test Restaurant',
+                'fulfillment_types' => [FulfillmentType::Pickup->value],
+            ],
             'U_CREATOR'
         );
 
