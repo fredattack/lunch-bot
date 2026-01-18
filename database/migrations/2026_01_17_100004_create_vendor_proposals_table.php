@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('created_by_provider_user_id');
             $table->timestamps();
 
-            $table->unique(['organization_id', 'lunch_session_id', 'vendor_id']);
+            $table->unique(['organization_id', 'lunch_session_id', 'vendor_id'], 'vp_org_session_vendor_unique');
             $table->index('status');
         });
     }
