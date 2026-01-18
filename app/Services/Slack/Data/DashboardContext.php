@@ -23,6 +23,7 @@ final readonly class DashboardContext
         public CarbonInterface $date,
         public bool $isToday,
         public bool $isAdmin,
+        public string $workspaceName,
         public Collection $proposals,
         public Collection $openProposals,
         public Collection $myProposalsInCharge,

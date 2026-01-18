@@ -617,6 +617,7 @@ class SlackInteractionHandler
         $fulfillment = $this->stateValue($state, 'fulfillment', 'fulfillment_type');
         $platform = $this->stateValue($state, 'platform', 'platform');
         $orderingMode = $this->stateValue($state, 'mode', 'mode_select');
+        $deadlineTime = $this->stateValue($state, 'deadline', 'deadline_time') ?: '11:30';
 
         if ($fulfillment && ! in_array($fulfillment, [FulfillmentType::Pickup->value, FulfillmentType::Delivery->value], true)) {
             return $this->viewErrorResponse(['fulfillment' => 'Type invalide.']);
@@ -634,7 +635,8 @@ class SlackInteractionHandler
                 FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
                 $platform ?: null,
                 $userId,
-                OrderingMode::tryFrom($orderingMode ?? '') ?? OrderingMode::Individual
+                OrderingMode::tryFrom($orderingMode ?? '') ?? OrderingMode::Individual,
+                $deadlineTime
             );
 
             $proposal->setRelation('lunchSession', $session);
@@ -672,6 +674,7 @@ class SlackInteractionHandler
         $notes = $this->stateValue($state, 'notes', 'notes');
         $fulfillment = $this->stateValue($state, 'fulfillment', 'fulfillment_type');
         $orderingMode = $this->stateValue($state, 'mode', 'mode_select');
+        $deadlineTime = $this->stateValue($state, 'deadline', 'deadline_time') ?: '11:30';
 
         if (! $name) {
             return $this->viewErrorResponse(['name' => 'Nom du restaurant requis.']);
@@ -693,7 +696,8 @@ class SlackInteractionHandler
                 ],
                 FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
                 $userId,
-                OrderingMode::tryFrom($orderingMode ?? '') ?? OrderingMode::Individual
+                OrderingMode::tryFrom($orderingMode ?? '') ?? OrderingMode::Individual,
+                $deadlineTime
             );
 
             $proposal->load(['lunchSession', 'vendor']);

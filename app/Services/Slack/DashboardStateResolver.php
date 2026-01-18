@@ -34,6 +34,8 @@ class DashboardStateResolver
             myOrder: $myOrder
         );
 
+        $workspaceName = $session->organization?->name ?? 'Workspace';
+
         return new DashboardContext(
             state: $state,
             session: $session,
@@ -41,6 +43,7 @@ class DashboardStateResolver
             date: $sessionDate,
             isToday: $isToday,
             isAdmin: $isAdmin,
+            workspaceName: $workspaceName,
             proposals: $proposals,
             openProposals: $openProposals,
             myProposalsInCharge: $myProposalsInCharge,

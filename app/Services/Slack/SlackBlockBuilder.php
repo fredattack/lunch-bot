@@ -207,6 +207,24 @@ class SlackBlockBuilder
                 ],
                 [
                     'type' => 'input',
+                    'block_id' => 'deadline',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Deadline (indicative)',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'deadline_time',
+                        'initial_value' => '11:30',
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'HH:MM',
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
                     'block_id' => 'platform',
                     'optional' => true,
                     'label' => [
@@ -706,6 +724,24 @@ class SlackBlockBuilder
                                 'text' => ['type' => 'plain_text', 'text' => OrderingMode::Shared->label()],
                                 'value' => OrderingMode::Shared->value,
                             ],
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'deadline',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Deadline (indicative)',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'deadline_time',
+                        'initial_value' => '11:30',
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'HH:MM',
                         ],
                     ],
                 ],

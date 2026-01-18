@@ -22,6 +22,7 @@ class VendorProposal extends Model
         'vendor_id',
         'fulfillment_type',
         'ordering_mode',
+        'deadline_time',
         'runner_user_id',
         'orderer_user_id',
         'platform',

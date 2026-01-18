@@ -6,6 +6,7 @@ use App\Enums\DashboardState;
 use App\Enums\FulfillmentType;
 use App\Enums\SlackAction;
 use App\Models\Order;
+use App\Models\Vendor;
 use App\Models\VendorProposal;
 use App\Services\Slack\Data\DashboardContext;
 use Carbon\CarbonInterface;
@@ -19,7 +20,7 @@ class DashboardBlockBuilder
             'callback_id' => SlackAction::CallbackLunchDashboard->value,
             'title' => [
                 'type' => 'plain_text',
-                'text' => 'Lunch',
+                'text' => $this->buildModalTitle($context->workspaceName),
             ],
             'close' => [
                 'type' => 'plain_text',
@@ -28,6 +29,19 @@ class DashboardBlockBuilder
             'private_metadata' => $context->toPrivateMetadataJson(),
             'blocks' => $this->buildBlocks($context),
         ];
+    }
+
+    private function buildModalTitle(string $workspaceName): string
+    {
+        $prefix = 'Lunch-bot — ';
+        $maxLength = 24;
+        $availableLength = $maxLength - mb_strlen($prefix);
+
+        if (mb_strlen($workspaceName) > $availableLength) {
+            $workspaceName = mb_substr($workspaceName, 0, $availableLength - 1).'…';
+        }
+
+        return $prefix.$workspaceName;
     }
 
     private function buildBlocks(DashboardContext $context): array
@@ -49,12 +63,11 @@ class DashboardBlockBuilder
     private function headerBlocks(DashboardContext $context): array
     {
         $dateLabel = $this->formatDateLabel($context->date, $context->isToday);
-        $deadline = $context->session->deadline_at?->format('H:i') ?? '-';
         $statusLabel = $this->sessionStatusLabel($context);
 
         $headerText = $context->state === DashboardState::History
-            ? "Lunch - {$dateLabel} (historique)"
-            : "Lunch - {$dateLabel}";
+            ? "{$dateLabel} (historique)"
+            : $dateLabel;
 
         return [
             [
@@ -70,7 +83,7 @@ class DashboardBlockBuilder
                 'elements' => [
                     [
                         'type' => 'mrkdwn',
-                        'text' => "Deadline : {$deadline} | {$statusLabel}",
+                        'text' => $statusLabel,
                     ],
                 ],
             ],
@@ -280,13 +293,13 @@ class DashboardBlockBuilder
     {
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Restaurant inconnu';
-        $orderCount = $proposal->orders_count ?? $proposal->orders->count();
         $fulfillmentLabel = $proposal->fulfillment_type === FulfillmentType::Delivery ? 'Livraison' : 'Sur place';
+        $deadlineTime = $proposal->deadline_time ?? '11:30';
 
         $responsibleText = $this->responsibleText($proposal);
         $participantsText = $this->participantsText($proposal, 5);
 
-        $sectionText = "*{$vendorName}*\n{$fulfillmentLabel} | {$responsibleText}";
+        $sectionText = "*{$vendorName}*\n{$fulfillmentLabel} | Deadline {$deadlineTime} | {$responsibleText}";
         if ($participantsText) {
             $sectionText .= "\n{$participantsText}";
         }
@@ -301,6 +314,15 @@ class DashboardBlockBuilder
                 ],
             ],
         ];
+
+        $urlButtons = $this->vendorUrlButtons($vendor);
+        if (! empty($urlButtons)) {
+            $blocks[] = [
+                'type' => 'actions',
+                'block_id' => "proposal_urls_{$proposal->id}",
+                'elements' => $urlButtons,
+            ];
+        }
 
         if ($context->canCreateProposal()) {
             $elements = [
@@ -329,6 +351,37 @@ class DashboardBlockBuilder
         }
 
         return $blocks;
+    }
+
+    private function vendorUrlButtons(?Vendor $vendor): array
+    {
+        if (! $vendor) {
+            return [];
+        }
+
+        $buttons = [];
+
+        if (! empty($vendor->url_website)) {
+            $buttons[] = $this->urlButton('Site', $vendor->url_website);
+        }
+
+        if (! empty($vendor->url_menu)) {
+            $buttons[] = $this->urlButton('Menu', $vendor->url_menu);
+        }
+
+        return $buttons;
+    }
+
+    private function urlButton(string $text, string $url): array
+    {
+        return [
+            'type' => 'button',
+            'text' => [
+                'type' => 'plain_text',
+                'text' => $text,
+            ],
+            'url' => $url,
+        ];
     }
 
     private function myOrderBlock(DashboardContext $context): array

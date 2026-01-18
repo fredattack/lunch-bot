@@ -27,13 +27,14 @@ class ProposeRestaurant
         array $vendorData,
         FulfillmentType $fulfillment,
         string $proposedByUserId,
-        OrderingMode $orderingMode = OrderingMode::Individual
+        OrderingMode $orderingMode = OrderingMode::Individual,
+        string $deadlineTime = '11:30'
     ): VendorProposal {
         if (! $session->isOpen()) {
             throw new InvalidArgumentException('La session de lunch est fermee.');
         }
 
-        return DB::transaction(function () use ($session, $vendorData, $fulfillment, $proposedByUserId, $orderingMode) {
+        return DB::transaction(function () use ($session, $vendorData, $fulfillment, $proposedByUserId, $orderingMode, $deadlineTime) {
             $vendor = $this->findOrCreateVendor($session, $vendorData, $proposedByUserId);
 
             $existing = VendorProposal::query()
@@ -54,6 +55,7 @@ class ProposeRestaurant
                 'vendor_id' => $vendor->id,
                 'fulfillment_type' => $fulfillment,
                 'ordering_mode' => $orderingMode,
+                'deadline_time' => $deadlineTime,
                 'runner_user_id' => $runnerUserId,
                 'orderer_user_id' => $ordererUserId,
                 'status' => ProposalStatus::Open,

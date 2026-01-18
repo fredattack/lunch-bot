@@ -7,6 +7,8 @@ use App\Enums\ProposalStatus;
 use App\Enums\SlackAction;
 use App\Models\LunchSession;
 use App\Models\Order;
+use App\Models\Organization;
+use App\Models\Vendor;
 use App\Models\VendorProposal;
 use App\Services\Slack\DashboardBlockBuilder;
 use App\Services\Slack\DashboardStateResolver;
@@ -207,5 +209,106 @@ class DashboardBlockBuilderTest extends TestCase
     {
         $blocksJson = json_encode($blocks);
         $this->assertStringNotContainsString($actionId, $blocksJson, "Blocks should not contain action_id: {$actionId}");
+    }
+
+    public function test_modal_title_includes_workspace_name(): void
+    {
+        $organization = Organization::factory()->create(['name' => 'Acme']);
+        $session = LunchSession::factory()->for($organization)->open()->create([
+            'date' => Carbon::now(config('lunch.timezone', 'Europe/Paris'))->toDateString(),
+        ]);
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+
+        $this->assertEquals('Lunch-bot — Acme', $modal['title']['text']);
+    }
+
+    public function test_modal_title_truncates_long_workspace_name(): void
+    {
+        $organization = Organization::factory()->create(['name' => 'Very Long Workspace Name']);
+        $session = LunchSession::factory()->for($organization)->open()->create([
+            'date' => Carbon::now(config('lunch.timezone', 'Europe/Paris'))->toDateString(),
+        ]);
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+
+        $this->assertLessThanOrEqual(24, mb_strlen($modal['title']['text']));
+        $this->assertStringContainsString('Lunch-bot —', $modal['title']['text']);
+        $this->assertStringEndsWith('…', $modal['title']['text']);
+    }
+
+    public function test_proposal_card_shows_deadline_time(): void
+    {
+        $session = $this->createTodaySession();
+        VendorProposal::factory()->for($session)->create([
+            'status' => ProposalStatus::Open,
+            'deadline_time' => '12:00',
+        ]);
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+        $blocks = $modal['blocks'];
+
+        $this->assertBlockContainsText($blocks, 'Deadline 12:00');
+    }
+
+    public function test_proposal_card_shows_url_buttons_when_vendor_has_urls(): void
+    {
+        $session = $this->createTodaySession();
+        $vendor = Vendor::factory()->for($session->organization)->create([
+            'url_website' => 'https://example.com',
+            'url_menu' => 'https://example.com/menu',
+        ]);
+        VendorProposal::factory()->for($session)->for($vendor)->create([
+            'status' => ProposalStatus::Open,
+        ]);
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+        $blocksJson = json_encode($modal['blocks']);
+
+        $this->assertStringContainsString('"text":"Site"', $blocksJson);
+        $this->assertStringContainsString('"text":"Menu"', $blocksJson);
+        $this->assertStringContainsString('https:\/\/example.com', $blocksJson);
+        $this->assertStringContainsString('https:\/\/example.com\/menu', $blocksJson);
+    }
+
+    public function test_proposal_card_hides_url_buttons_when_vendor_has_no_urls(): void
+    {
+        $session = $this->createTodaySession();
+        $vendor = Vendor::factory()->for($session->organization)->create([
+            'url_website' => null,
+            'url_menu' => null,
+        ]);
+        VendorProposal::factory()->for($session)->for($vendor)->create([
+            'status' => ProposalStatus::Open,
+        ]);
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+        $blocksJson = json_encode($modal['blocks']);
+
+        $this->assertStringNotContainsString('"text":"Site"', $blocksJson);
+        $this->assertStringNotContainsString('"text":"Menu"', $blocksJson);
+    }
+
+    public function test_header_shows_only_date_without_deadline(): void
+    {
+        $session = $this->createTodaySession();
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+        $blocksJson = json_encode($modal['blocks']);
+
+        $this->assertStringNotContainsString('Deadline :', $blocksJson);
+        $this->assertStringNotContainsString('Lunch -', $blocksJson);
     }
 }
