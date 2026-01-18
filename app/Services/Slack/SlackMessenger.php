@@ -2,6 +2,8 @@
 
 namespace App\Services\Slack;
 
+use App\Enums\FulfillmentType;
+use App\Enums\SlackAction;
 use App\Models\LunchSession;
 use App\Models\Order;
 use App\Models\VendorProposal;
@@ -33,6 +35,58 @@ class SlackMessenger
         }
     }
 
+    public function postOrderCreatedMessage(VendorProposal $proposal, string $createdByUserId): void
+    {
+        $proposal->loadMissing(['vendor', 'lunchSession']);
+
+        $vendorName = $proposal->vendor?->name ?? 'Restaurant';
+        $fulfillmentLabel = $proposal->fulfillment_type === FulfillmentType::Pickup ? 'pickup' : 'delivery';
+        $date = $proposal->lunchSession->date->format('Y-m-d');
+
+        $blocks = [
+            [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => "*Nouvelle commande lancee*\n{$vendorName} — {$fulfillmentLabel}\nPar <@{$createdByUserId}>",
+                ],
+            ],
+            [
+                'type' => 'actions',
+                'elements' => [
+                    [
+                        'type' => 'button',
+                        'text' => ['type' => 'plain_text', 'text' => 'Commander'],
+                        'action_id' => SlackAction::OpenOrderForProposal->value,
+                        'value' => (string) $proposal->id,
+                        'style' => 'primary',
+                    ],
+                    [
+                        'type' => 'button',
+                        'text' => ['type' => 'plain_text', 'text' => 'Autre enseigne'],
+                        'action_id' => SlackAction::OpenLunchDashboard->value,
+                        'value' => $date,
+                    ],
+                ],
+            ],
+        ];
+
+        $response = $this->slack->postMessage(
+            $proposal->lunchSession->provider_channel_id,
+            "Nouvelle commande: {$vendorName}",
+            $blocks,
+            $proposal->lunchSession->provider_message_ts
+        );
+
+        if ($response['ok'] ?? false) {
+            $proposal->provider_message_ts = $response['ts'] ?? null;
+            $proposal->save();
+        }
+    }
+
+    /**
+     * @deprecated Use postOrderCreatedMessage instead
+     */
     public function postProposalMessage(VendorProposal $proposal): void
     {
         $proposal->loadMissing(['vendor', 'orders', 'lunchSession']);
@@ -51,6 +105,9 @@ class SlackMessenger
         }
     }
 
+    /**
+     * @deprecated Legacy message with multiple buttons - use postOrderCreatedMessage instead
+     */
     public function updateProposalMessage(VendorProposal $proposal): void
     {
         if (! $proposal->provider_message_ts) {
@@ -193,6 +250,11 @@ class SlackMessenger
     public function openModal(string $triggerId, array $view): void
     {
         $this->slack->openModal($triggerId, $view);
+    }
+
+    public function pushModal(string $triggerId, array $view): void
+    {
+        $this->slack->pushModal($triggerId, $view);
     }
 
     public function isAdmin(string $userId): bool

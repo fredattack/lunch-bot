@@ -5,14 +5,19 @@ namespace App\Services\Slack;
 use App\Actions\LunchSession\CloseLunchSession;
 use App\Actions\LunchSession\CreateLunchSession;
 use App\Actions\Order\CreateOrder;
+use App\Actions\Order\DeleteOrder;
 use App\Actions\Order\UpdateOrder;
 use App\Actions\Vendor\CreateVendor;
 use App\Actions\Vendor\UpdateVendor;
 use App\Actions\VendorProposal\AssignRole;
 use App\Actions\VendorProposal\DelegateRole;
+use App\Actions\VendorProposal\ProposeRestaurant;
 use App\Actions\VendorProposal\ProposeVendor;
 use App\Authorization\Actor;
 use App\Enums\FulfillmentType;
+use App\Enums\OrderingMode;
+use App\Enums\ProposalStatus;
+use App\Enums\SlackAction;
 use App\Models\LunchSession;
 use App\Models\Order;
 use App\Models\Vendor;
@@ -29,13 +34,17 @@ class SlackInteractionHandler
     public function __construct(
         private readonly SlackMessenger $messenger,
         private readonly SlackBlockBuilder $blocks,
+        private readonly DashboardBlockBuilder $dashboardBlocks,
+        private readonly DashboardStateResolver $stateResolver,
         private readonly CloseLunchSession $closeLunchSession,
         private readonly CreateLunchSession $createLunchSession,
         private readonly ProposeVendor $proposeVendor,
+        private readonly ProposeRestaurant $proposeRestaurant,
         private readonly AssignRole $assignRole,
         private readonly DelegateRole $delegateRole,
         private readonly CreateOrder $createOrder,
         private readonly UpdateOrder $updateOrder,
+        private readonly DeleteOrder $deleteOrder,
         private readonly CreateVendor $createVendor,
         private readonly UpdateVendor $updateVendor
     ) {}
@@ -45,35 +54,25 @@ class SlackInteractionHandler
         Log::info('Slack event received.', ['type' => $payload['type'] ?? null]);
     }
 
-    public function handleLunchDashboard(string $userId, string $channelId, string $triggerId): void
+    public function handleLunchDashboard(string $userId, string $channelId, string $triggerId, ?string $dateOverride = null): void
     {
         $timezone = config('lunch.timezone', 'Europe/Paris');
-        $today = Carbon::now($timezone)->toDateString();
+        $date = $dateOverride ?? Carbon::now($timezone)->toDateString();
         $deadlineTime = config('lunch.deadline_time', '11:30');
-        $deadlineAt = Carbon::parse("{$today} {$deadlineTime}", $timezone);
+        $deadlineAt = Carbon::parse("{$date} {$deadlineTime}", $timezone);
 
-        $session = $this->createLunchSession->handle($today, $channelId, $deadlineAt);
+        $session = $this->createLunchSession->handle($date, $channelId, $deadlineAt);
+        $isAdmin = $this->messenger->isAdmin($userId);
 
-        $proposals = VendorProposal::query()
-            ->where('lunch_session_id', $session->id)
-            ->with(['vendor', 'orders'])
-            ->withCount('orders')
-            ->get()
-            ->all();
+        $context = $this->stateResolver->resolve($session, $userId, $isAdmin);
+        $view = $this->dashboardBlocks->buildModal($context);
 
-        $userOrder = Order::query()
-            ->whereIn('vendor_proposal_id', array_map(fn ($p) => $p->id, $proposals))
-            ->where('provider_user_id', $userId)
-            ->first();
-
-        $canClose = $this->canCloseSession($session, $userId);
-
-        $view = $this->blocks->lunchDashboardModal($session, $proposals, $userOrder, $canClose);
         $this->messenger->openModal($triggerId, $view);
     }
 
     public function handleInteractivity(array $payload): Response
     {
+        ray($payload)->blue();
         $type = $payload['type'] ?? '';
 
         if ($type === 'block_actions') {
@@ -99,7 +98,203 @@ class SlackInteractionHandler
         $channelId = $payload['channel']['id'] ?? config('lunch.channel_id');
 
         switch ($actionId) {
-            case SlackActions::OPEN_PROPOSAL_MODAL:
+            // New dashboard actions (manifeste)
+            case SlackAction::DashboardStartFromCatalog->value:
+            case SlackAction::DashboardRelaunch->value:
+                $session = LunchSession::find($value);
+                if (! $session) {
+                    return;
+                }
+                $sessionChannel = $session->provider_channel_id;
+                if (! $this->ensureSessionOpen($session, $sessionChannel, $userId)) {
+                    return;
+                }
+                $vendors = Vendor::query()
+                    ->where('organization_id', $session->organization_id)
+                    ->where('active', true)
+                    ->orderBy('name')
+                    ->get()
+                    ->all();
+                if (empty($vendors)) {
+                    $view = $this->blocks->proposeRestaurantModal($session);
+                    $this->messenger->pushModal($triggerId, $view);
+
+                    return;
+                }
+                $view = $this->blocks->proposalModal($session, $vendors);
+                $this->messenger->pushModal($triggerId, $view);
+
+                return;
+
+            case SlackAction::DashboardCreateProposal->value:
+                $session = LunchSession::find($value);
+                if (! $session) {
+                    return;
+                }
+                $sessionChannel = $session->provider_channel_id;
+                if (! $this->ensureSessionOpen($session, $sessionChannel, $userId)) {
+                    return;
+                }
+                $view = $this->blocks->proposeRestaurantModal($session);
+                $this->messenger->pushModal($triggerId, $view);
+
+                return;
+
+            case SlackAction::DashboardJoinProposal->value:
+                $proposal = VendorProposal::with('lunchSession')->find($value);
+                if (! $proposal) {
+                    return;
+                }
+                $sessionChannel = $proposal->lunchSession->provider_channel_id;
+                if (! $this->ensureSessionOpen($proposal->lunchSession, $sessionChannel, $userId)) {
+                    return;
+                }
+                $view = $this->blocks->orderModal($proposal, null, false, false);
+                $this->messenger->pushModal($triggerId, $view);
+
+                return;
+
+            case SlackAction::OpenOrderForProposal->value:
+                $proposal = VendorProposal::with('lunchSession')->find($value);
+                if (! $proposal) {
+                    return;
+                }
+                $sessionChannel = $proposal->lunchSession->provider_channel_id;
+                if (! $this->ensureSessionOpen($proposal->lunchSession, $sessionChannel, $userId)) {
+                    return;
+                }
+                $existingOrder = Order::query()
+                    ->where('vendor_proposal_id', $proposal->id)
+                    ->where('provider_user_id', $userId)
+                    ->first();
+                if ($existingOrder) {
+                    $allowFinal = $this->canManageFinalPrices($proposal, $userId);
+                    $view = $this->blocks->orderModal($proposal, $existingOrder, $allowFinal, true);
+                } else {
+                    $view = $this->blocks->orderModal($proposal, null, false, false);
+                }
+                $this->messenger->openModal($triggerId, $view);
+
+                return;
+
+            case SlackAction::OpenLunchDashboard->value:
+                $this->handleLunchDashboard($userId, $channelId, $triggerId, $value ?: null);
+
+                return;
+
+            case SlackAction::OrderOpenEdit->value:
+                $order = Order::with('proposal.lunchSession')->find($value);
+                if (! $order) {
+                    return;
+                }
+                $proposal = $order->proposal;
+                $allowFinal = $this->canManageFinalPrices($proposal, $userId);
+                $view = $this->blocks->orderModal($proposal, $order, $allowFinal, true);
+                $this->messenger->pushModal($triggerId, $view);
+
+                return;
+
+            case SlackAction::OrderDelete->value:
+                $order = Order::with('proposal.lunchSession')->find($value);
+                if (! $order) {
+                    return;
+                }
+                $sessionChannel = $order->proposal->lunchSession->provider_channel_id;
+                try {
+                    $proposal = $order->proposal;
+                    $this->deleteOrder->handle($order, $userId);
+                    $this->messenger->updateProposalMessage($proposal);
+                    $this->messenger->postEphemeral($sessionChannel, $userId, 'Commande supprimee.');
+                } catch (InvalidArgumentException $e) {
+                    $this->messenger->postEphemeral($sessionChannel, $userId, $e->getMessage());
+                }
+
+                return;
+
+            case SlackAction::ProposalOpenManage->value:
+                $proposal = VendorProposal::with(['lunchSession', 'vendor', 'orders'])->find($value);
+                if (! $proposal) {
+                    return;
+                }
+                $sessionChannel = $proposal->lunchSession->provider_channel_id;
+                if (! $this->ensureSessionOpen($proposal->lunchSession, $sessionChannel, $userId)) {
+                    return;
+                }
+                $view = $this->blocks->proposalManageModal($proposal, $userId);
+                $this->messenger->pushModal($triggerId, $view);
+
+                return;
+
+            case SlackAction::ProposalTakeCharge->value:
+                $proposal = VendorProposal::with('lunchSession')->find($value);
+                if (! $proposal) {
+                    return;
+                }
+                $sessionChannel = $proposal->lunchSession->provider_channel_id;
+                if (! $this->ensureSessionOpen($proposal->lunchSession, $sessionChannel, $userId)) {
+                    return;
+                }
+                $isPickup = $proposal->fulfillment_type === FulfillmentType::Pickup;
+                $role = $isPickup ? 'runner' : 'orderer';
+                $assigned = $this->assignRole->handle($proposal, $role, $userId);
+                if ($assigned) {
+                    $this->messenger->updateProposalMessage($proposal);
+                    $roleLabel = $isPickup ? 'runner' : 'orderer';
+                    $this->messenger->postEphemeral($sessionChannel, $userId, "Vous etes maintenant {$roleLabel} pour cette commande.");
+                } else {
+                    $this->messenger->postEphemeral($sessionChannel, $userId, 'Un responsable est deja assigne.');
+                }
+
+                return;
+
+            case SlackAction::ProposalOpenRecap->value:
+                $proposal = VendorProposal::with('lunchSession')->find($value);
+                if (! $proposal) {
+                    return;
+                }
+                if (! $this->canManageFinalPrices($proposal, $userId)) {
+                    $sessionChannel = $proposal->lunchSession->provider_channel_id;
+                    $this->messenger->postEphemeral($sessionChannel, $userId, 'Seul le responsable peut voir le recapitulatif.');
+
+                    return;
+                }
+                $this->messenger->postSummary($proposal);
+
+                return;
+
+            case SlackAction::ProposalClose->value:
+                $proposal = VendorProposal::with('lunchSession')->find($value);
+                if (! $proposal) {
+                    return;
+                }
+                if (! $this->canManageFinalPrices($proposal, $userId)) {
+                    $sessionChannel = $proposal->lunchSession->provider_channel_id;
+                    $this->messenger->postEphemeral($sessionChannel, $userId, 'Seul le responsable peut cloturer.');
+
+                    return;
+                }
+                $proposal->update(['status' => ProposalStatus::Closed]);
+                $this->messenger->updateProposalMessage($proposal);
+
+                return;
+
+            case SlackAction::SessionClose->value:
+                $session = LunchSession::find($value);
+                if (! $session) {
+                    return;
+                }
+                if (! $this->canCloseSession($session, $userId)) {
+                    $this->messenger->postEphemeral($channelId, $userId, 'Seul le responsable ou un admin peut cloturer.');
+
+                    return;
+                }
+                $this->closeLunchSession->handle($session);
+                $this->messenger->postClosureSummary($session);
+
+                return;
+
+                // Legacy block actions
+            case SlackAction::OpenProposalModal->value:
                 $session = LunchSession::find($value);
                 if (! $session || ! $this->ensureSessionOpen($session, $channelId, $userId)) {
                     return;
@@ -114,14 +309,14 @@ class SlackInteractionHandler
                 $this->messenger->openModal($triggerId, $view);
 
                 return;
-            case SlackActions::OPEN_ADD_ENSEIGNE_MODAL:
+            case SlackAction::OpenAddEnseigneModal->value:
                 $session = LunchSession::find($value);
                 $metadata = $session ? ['lunch_session_id' => $session->id] : [];
                 $view = $this->blocks->addVendorModal($metadata);
                 $this->messenger->openModal($triggerId, $view);
 
                 return;
-            case SlackActions::CLOSE_DAY:
+            case SlackAction::CloseDay->value:
                 $session = LunchSession::find($value);
                 if (! $session) {
                     return;
@@ -135,13 +330,13 @@ class SlackInteractionHandler
                 $this->messenger->postClosureSummary($session);
 
                 return;
-            case SlackActions::CLAIM_RUNNER:
-            case SlackActions::CLAIM_ORDERER:
+            case SlackAction::ClaimRunner->value:
+            case SlackAction::ClaimOrderer->value:
                 $proposal = VendorProposal::with('lunchSession')->find($value);
                 if (! $proposal || ! $this->ensureSessionOpen($proposal->lunchSession, $channelId, $userId)) {
                     return;
                 }
-                $role = $actionId === SlackActions::CLAIM_RUNNER ? 'runner' : 'orderer';
+                $role = $actionId === SlackAction::ClaimRunner->value ? 'runner' : 'orderer';
                 $assigned = $this->assignRole->handle($proposal, $role, $userId);
                 if ($assigned) {
                     $this->messenger->updateProposalMessage($proposal);
@@ -150,7 +345,7 @@ class SlackInteractionHandler
                 }
 
                 return;
-            case SlackActions::OPEN_ORDER_MODAL:
+            case SlackAction::OpenOrderModal->value:
                 $proposal = VendorProposal::with('lunchSession')->find($value);
                 if (! $proposal || ! $this->ensureSessionOpen($proposal->lunchSession, $channelId, $userId)) {
                     return;
@@ -159,7 +354,7 @@ class SlackInteractionHandler
                 $this->messenger->openModal($triggerId, $view);
 
                 return;
-            case SlackActions::OPEN_EDIT_ORDER_MODAL:
+            case SlackAction::OpenEditOrderModal->value:
                 $proposal = VendorProposal::with('lunchSession')->find($value);
                 if (! $proposal) {
                     return;
@@ -178,7 +373,7 @@ class SlackInteractionHandler
                 $this->messenger->openModal($triggerId, $view);
 
                 return;
-            case SlackActions::OPEN_SUMMARY:
+            case SlackAction::OpenSummary->value:
                 $proposal = VendorProposal::with('lunchSession')->find($value);
                 if (! $proposal) {
                     return;
@@ -191,7 +386,7 @@ class SlackInteractionHandler
                 $this->messenger->postSummary($proposal);
 
                 return;
-            case SlackActions::OPEN_DELEGATE_MODAL:
+            case SlackAction::OpenDelegateModal->value:
                 $proposal = VendorProposal::with('lunchSession')->find($value);
                 if (! $proposal) {
                     return;
@@ -206,7 +401,7 @@ class SlackInteractionHandler
                 $this->messenger->openModal($triggerId, $view);
 
                 return;
-            case SlackActions::OPEN_ADJUST_PRICE_MODAL:
+            case SlackAction::OpenAdjustPriceModal->value:
                 $proposal = VendorProposal::with('lunchSession')->find($value);
                 if (! $proposal) {
                     return;
@@ -226,7 +421,7 @@ class SlackInteractionHandler
                 $this->messenger->openModal($triggerId, $view);
 
                 return;
-            case SlackActions::OPEN_MANAGE_ENSEIGNE_MODAL:
+            case SlackAction::OpenManageEnseigneModal->value:
                 $proposal = VendorProposal::with('vendor')->find($value);
                 if (! $proposal) {
                     return;
@@ -242,31 +437,65 @@ class SlackInteractionHandler
                 $this->messenger->openModal($triggerId, $view);
 
                 return;
-            case SlackActions::DASHBOARD_PROPOSE_VENDOR:
+            case SlackAction::DashboardProposeVendor->value:
+                ray("DashboardProposeVendor - value: {$value}")->green();
                 $session = LunchSession::find($value);
-                if (! $session || ! $this->ensureSessionOpen($session, $channelId, $userId)) {
+                if (! $session) {
+                    ray('Session not found')->red();
+
                     return;
                 }
-                $vendors = Vendor::query()->where('active', true)->orderBy('name')->get()->all();
+                ray('Session found', $session->toArray())->green();
+                $sessionChannel = $session->provider_channel_id;
+                if (! $this->ensureSessionOpen($session, $sessionChannel, $userId)) {
+                    ray('Session not open')->red();
+
+                    return;
+                }
+                ray('Opening proposeRestaurantModal')->green();
+                $view = $this->blocks->proposeRestaurantModal($session);
+                ray($view)->purple();
+                $this->messenger->pushModal($triggerId, $view);
+
+                return;
+            case SlackAction::DashboardChooseFavorite->value:
+                $session = LunchSession::find($value);
+                if (! $session) {
+                    return;
+                }
+                $sessionChannel = $session->provider_channel_id;
+                if (! $this->ensureSessionOpen($session, $sessionChannel, $userId)) {
+                    return;
+                }
+                $vendors = Vendor::query()
+                    ->where('organization_id', $session->organization_id)
+                    ->where('active', true)
+                    ->orderBy('name')
+                    ->get()
+                    ->all();
                 if (empty($vendors)) {
-                    $this->messenger->postEphemeral($channelId, $userId, 'Aucune enseigne active pour le moment.');
+                    $this->messenger->postEphemeral($sessionChannel, $userId, 'Aucun favori enregistre pour le moment.');
 
                     return;
                 }
                 $view = $this->blocks->proposalModal($session, $vendors);
-                $this->messenger->openModal($triggerId, $view);
+                $this->messenger->pushModal($triggerId, $view);
 
                 return;
-            case SlackActions::DASHBOARD_ORDER_HERE:
+            case SlackAction::DashboardOrderHere->value:
                 $proposal = VendorProposal::with('lunchSession')->find($value);
-                if (! $proposal || ! $this->ensureSessionOpen($proposal->lunchSession, $channelId, $userId)) {
+                if (! $proposal) {
+                    return;
+                }
+                $sessionChannel = $proposal->lunchSession->provider_channel_id;
+                if (! $this->ensureSessionOpen($proposal->lunchSession, $sessionChannel, $userId)) {
                     return;
                 }
                 $view = $this->blocks->orderModal($proposal, null, false, false);
-                $this->messenger->openModal($triggerId, $view);
+                $this->messenger->pushModal($triggerId, $view);
 
                 return;
-            case SlackActions::DASHBOARD_CLAIM_RESPONSIBLE:
+            case SlackAction::DashboardClaimResponsible->value:
                 $proposal = VendorProposal::with('lunchSession')->find($value);
                 if (! $proposal || ! $this->ensureSessionOpen($proposal->lunchSession, $channelId, $userId)) {
                     return;
@@ -279,7 +508,7 @@ class SlackInteractionHandler
                 }
 
                 return;
-            case SlackActions::DASHBOARD_VIEW_ORDERS:
+            case SlackAction::DashboardViewOrders->value:
                 $proposal = VendorProposal::with('lunchSession')->find($value);
                 if (! $proposal) {
                     return;
@@ -287,7 +516,7 @@ class SlackInteractionHandler
                 $this->messenger->postSummary($proposal);
 
                 return;
-            case SlackActions::DASHBOARD_MY_ORDER:
+            case SlackAction::DashboardMyOrder->value:
                 $proposal = VendorProposal::with('lunchSession')->find($value);
                 if (! $proposal) {
                     return;
@@ -297,16 +526,17 @@ class SlackInteractionHandler
                     ->where('provider_user_id', $userId)
                     ->first();
                 if (! $order) {
-                    $this->messenger->postEphemeral($channelId, $userId, 'Aucune commande a modifier.');
+                    $sessionChannel = $proposal->lunchSession->provider_channel_id;
+                    $this->messenger->postEphemeral($sessionChannel, $userId, 'Aucune commande a modifier.');
 
                     return;
                 }
                 $allowFinal = $this->canManageFinalPrices($proposal, $userId);
                 $view = $this->blocks->orderModal($proposal, $order, $allowFinal, true);
-                $this->messenger->openModal($triggerId, $view);
+                $this->messenger->pushModal($triggerId, $view);
 
                 return;
-            case SlackActions::DASHBOARD_CLOSE_SESSION:
+            case SlackAction::DashboardCloseSession->value:
                 $session = LunchSession::find($value);
                 if (! $session) {
                     return;
@@ -331,20 +561,38 @@ class SlackInteractionHandler
         $userId = $payload['user']['id'] ?? '';
 
         switch ($callbackId) {
-            case SlackActions::CALLBACK_PROPOSAL_CREATE:
+            case SlackAction::CallbackProposalCreate->value:
+            case 'proposal.create': // Legacy
                 return $this->handleProposalSubmission($payload, $userId);
-            case SlackActions::CALLBACK_ENSEIGNE_CREATE:
+
+            case SlackAction::CallbackRestaurantPropose->value:
+            case 'restaurant.propose': // Legacy
+                return $this->handleRestaurantPropose($payload, $userId);
+
+            case SlackAction::CallbackEnseigneCreate->value:
+            case 'enseigne.create': // Legacy
                 return $this->handleVendorCreate($payload, $userId);
-            case SlackActions::CALLBACK_ENSEIGNE_UPDATE:
+
+            case SlackAction::CallbackEnseigneUpdate->value:
+            case 'enseigne.update': // Legacy
                 return $this->handleVendorUpdate($payload, $userId);
-            case SlackActions::CALLBACK_ORDER_CREATE:
+
+            case SlackAction::CallbackOrderCreate->value:
+            case 'order.create': // Legacy
                 return $this->handleOrderCreate($payload, $userId);
-            case SlackActions::CALLBACK_ORDER_EDIT:
+
+            case SlackAction::CallbackOrderEdit->value:
+            case 'order.edit': // Legacy
                 return $this->handleOrderEdit($payload, $userId);
-            case SlackActions::CALLBACK_ROLE_DELEGATE:
+
+            case SlackAction::CallbackRoleDelegate->value:
+            case 'role.delegate': // Legacy
                 return $this->handleRoleDelegate($payload, $userId);
-            case SlackActions::CALLBACK_ORDER_ADJUST_PRICE:
+
+            case SlackAction::CallbackOrderAdjustPrice->value:
+            case 'order.adjust_price': // Legacy
                 return $this->handleAdjustPrice($payload, $userId);
+
             default:
                 return response('', 200);
         }
@@ -368,6 +616,7 @@ class SlackInteractionHandler
         $vendorId = $this->stateValue($state, 'enseigne', 'enseigne_id');
         $fulfillment = $this->stateValue($state, 'fulfillment', 'fulfillment_type');
         $platform = $this->stateValue($state, 'platform', 'platform');
+        $orderingMode = $this->stateValue($state, 'mode', 'mode_select');
 
         if ($fulfillment && ! in_array($fulfillment, [FulfillmentType::Pickup->value, FulfillmentType::Delivery->value], true)) {
             return $this->viewErrorResponse(['fulfillment' => 'Type invalide.']);
@@ -384,12 +633,74 @@ class SlackInteractionHandler
                 $vendor,
                 FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
                 $platform ?: null,
-                $userId
+                $userId,
+                OrderingMode::tryFrom($orderingMode ?? '') ?? OrderingMode::Individual
             );
 
             $proposal->setRelation('lunchSession', $session);
             $proposal->setRelation('vendor', $vendor);
-            $this->messenger->postProposalMessage($proposal);
+
+            $orderModal = $this->blocks->orderModal($proposal, null, false, false);
+
+            return $this->viewUpdateResponse($orderModal);
+        } catch (InvalidArgumentException $e) {
+            $this->messenger->postEphemeral($session->provider_channel_id, $userId, $e->getMessage());
+        }
+
+        return response('', 200);
+    }
+
+    private function handleRestaurantPropose(array $payload, string $userId): Response
+    {
+        $metadata = $this->decodeMetadata($payload['view']['private_metadata'] ?? '{}');
+        $session = LunchSession::find($metadata['lunch_session_id'] ?? null);
+        if (! $session) {
+            return response('', 200);
+        }
+
+        if (! $session->isOpen()) {
+            $this->messenger->postEphemeral($session->provider_channel_id, $userId, 'Les commandes sont verrouillees.');
+
+            return response('', 200);
+        }
+
+        $state = $payload['view']['state']['values'] ?? [];
+        $name = $this->stateValue($state, 'name', 'name');
+        $cuisineType = $this->stateValue($state, 'cuisine_type', 'cuisine_type');
+        $urlWebsite = $this->stateValue($state, 'url_website', 'url_website');
+        $urlMenu = $this->stateValue($state, 'url_menu', 'url_menu');
+        $notes = $this->stateValue($state, 'notes', 'notes');
+        $fulfillment = $this->stateValue($state, 'fulfillment', 'fulfillment_type');
+        $orderingMode = $this->stateValue($state, 'mode', 'mode_select');
+
+        if (! $name) {
+            return $this->viewErrorResponse(['name' => 'Nom du restaurant requis.']);
+        }
+
+        if ($fulfillment && ! in_array($fulfillment, [FulfillmentType::Pickup->value, FulfillmentType::Delivery->value], true)) {
+            return $this->viewErrorResponse(['fulfillment' => 'Type invalide.']);
+        }
+
+        try {
+            $proposal = $this->proposeRestaurant->handle(
+                $session,
+                [
+                    'name' => $name,
+                    'cuisine_type' => $cuisineType ?: null,
+                    'url_website' => $urlWebsite ?: null,
+                    'url_menu' => $urlMenu ?: null,
+                    'notes' => $notes ?: null,
+                ],
+                FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
+                $userId,
+                OrderingMode::tryFrom($orderingMode ?? '') ?? OrderingMode::Individual
+            );
+
+            $proposal->load(['lunchSession', 'vendor']);
+
+            $orderModal = $this->blocks->orderModal($proposal, null, false, false);
+
+            return $this->viewUpdateResponse($orderModal);
         } catch (InvalidArgumentException $e) {
             $this->messenger->postEphemeral($session->provider_channel_id, $userId, $e->getMessage());
         }
@@ -477,19 +788,26 @@ class SlackInteractionHandler
             ->where('provider_user_id', $userId)
             ->first();
 
+        $isFirstOrderForProposal = ! $proposal->provider_message_ts
+            && $proposal->orders()->count() === 0;
+
         try {
             if ($existingOrder) {
                 $this->updateOrder->handle($existingOrder, $data, $userId);
             } else {
                 $this->createOrder->handle($proposal, $userId, $data);
             }
-            $this->messenger->updateProposalMessage($proposal);
+
+            if ($isFirstOrderForProposal && ! $existingOrder) {
+                $this->messenger->postOrderCreatedMessage($proposal, $userId);
+            }
+
             $this->postOptionalFeedback($payload, $userId, 'Commande enregistree.');
         } catch (InvalidArgumentException $e) {
             $this->messenger->postEphemeral($proposal->lunchSession->provider_channel_id, $userId, $e->getMessage());
         }
 
-        return response('', 200);
+        return $this->viewClearResponse();
     }
 
     private function handleOrderEdit(array $payload, string $userId): Response
@@ -733,6 +1051,21 @@ class SlackInteractionHandler
         ];
 
         return response()->json($payload, 200);
+    }
+
+    private function viewUpdateResponse(array $view): Response
+    {
+        $payload = [
+            'response_action' => 'update',
+            'view' => $view,
+        ];
+
+        return response()->json($payload, 200);
+    }
+
+    private function viewClearResponse(): Response
+    {
+        return response()->json(['response_action' => 'clear'], 200);
     }
 
     private function postOptionalFeedback(array $payload, string $userId, string $message): void

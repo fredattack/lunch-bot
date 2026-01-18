@@ -3,6 +3,8 @@
 namespace App\Services\Slack;
 
 use App\Enums\FulfillmentType;
+use App\Enums\OrderingMode;
+use App\Enums\SlackAction;
 use App\Models\LunchSession;
 use App\Models\Order;
 use App\Models\Vendor;
@@ -27,9 +29,9 @@ class SlackBlockBuilder
             [
                 'type' => 'actions',
                 'elements' => [
-                    $this->button('Proposer une enseigne', SlackActions::OPEN_PROPOSAL_MODAL, (string) $session->id),
-                    $this->button('Ajouter une enseigne', SlackActions::OPEN_ADD_ENSEIGNE_MODAL, (string) $session->id),
-                    $this->button('Cloturer la journee', SlackActions::CLOSE_DAY, (string) $session->id, 'danger'),
+                    $this->button('Proposer une enseigne', SlackAction::OpenProposalModal->value, (string) $session->id),
+                    $this->button('Ajouter une enseigne', SlackAction::OpenAddEnseigneModal->value, (string) $session->id),
+                    $this->button('Cloturer la journee', SlackAction::CloseDay->value, (string) $session->id, 'danger'),
                 ],
             ],
         ];
@@ -64,19 +66,19 @@ class SlackBlockBuilder
             [
                 'type' => 'actions',
                 'elements' => [
-                    $this->button('Je suis runner', SlackActions::CLAIM_RUNNER, (string) $proposal->id),
-                    $this->button('Je suis orderer', SlackActions::CLAIM_ORDERER, (string) $proposal->id),
-                    $this->button('Je commande', SlackActions::OPEN_ORDER_MODAL, (string) $proposal->id, 'primary'),
-                    $this->button('Modifier ma commande', SlackActions::OPEN_EDIT_ORDER_MODAL, (string) $proposal->id),
-                    $this->button('Recapitulatif', SlackActions::OPEN_SUMMARY, (string) $proposal->id),
+                    $this->button('Je suis runner', SlackAction::ClaimRunner->value, (string) $proposal->id),
+                    $this->button('Je suis orderer', SlackAction::ClaimOrderer->value, (string) $proposal->id),
+                    $this->button('Je commande', SlackAction::OpenOrderModal->value, (string) $proposal->id, 'primary'),
+                    $this->button('Modifier ma commande', SlackAction::OpenEditOrderModal->value, (string) $proposal->id),
+                    $this->button('Recapitulatif', SlackAction::OpenSummary->value, (string) $proposal->id),
                 ],
             ],
             [
                 'type' => 'actions',
                 'elements' => [
-                    $this->button('Deleguer mon role', SlackActions::OPEN_DELEGATE_MODAL, (string) $proposal->id),
-                    $this->button('Ajuster prix final', SlackActions::OPEN_ADJUST_PRICE_MODAL, (string) $proposal->id),
-                    $this->button('Gerer enseigne', SlackActions::OPEN_MANAGE_ENSEIGNE_MODAL, (string) $proposal->id),
+                    $this->button('Deleguer mon role', SlackAction::OpenDelegateModal->value, (string) $proposal->id),
+                    $this->button('Ajuster prix final', SlackAction::OpenAdjustPriceModal->value, (string) $proposal->id),
+                    $this->button('Gerer enseigne', SlackAction::OpenManageEnseigneModal->value, (string) $proposal->id),
                 ],
             ],
         ];
@@ -123,15 +125,15 @@ class SlackBlockBuilder
 
         return [
             'type' => 'modal',
-            'callback_id' => SlackActions::CALLBACK_PROPOSAL_CREATE,
+            'callback_id' => SlackAction::CallbackProposalCreate->value,
             'private_metadata' => json_encode(['lunch_session_id' => $session->id], JSON_THROW_ON_ERROR),
             'title' => [
                 'type' => 'plain_text',
-                'text' => 'Proposer une enseigne',
+                'text' => 'Demarrer une commande',
             ],
             'submit' => [
                 'type' => 'plain_text',
-                'text' => 'Proposer',
+                'text' => 'Continuer',
             ],
             'close' => [
                 'type' => 'plain_text',
@@ -143,7 +145,7 @@ class SlackBlockBuilder
                     'block_id' => 'enseigne',
                     'label' => [
                         'type' => 'plain_text',
-                        'text' => 'Enseigne',
+                        'text' => 'Restaurant',
                     ],
                     'element' => [
                         'type' => 'static_select',
@@ -156,19 +158,49 @@ class SlackBlockBuilder
                     'block_id' => 'fulfillment',
                     'label' => [
                         'type' => 'plain_text',
-                        'text' => 'Type de commande',
+                        'text' => 'Type',
                     ],
                     'element' => [
                         'type' => 'static_select',
                         'action_id' => 'fulfillment_type',
+                        'initial_option' => [
+                            'text' => ['type' => 'plain_text', 'text' => 'Sur place (pickup)'],
+                            'value' => FulfillmentType::Pickup->value,
+                        ],
                         'options' => [
                             [
-                                'text' => ['type' => 'plain_text', 'text' => 'Pickup'],
+                                'text' => ['type' => 'plain_text', 'text' => 'Sur place (pickup)'],
                                 'value' => FulfillmentType::Pickup->value,
                             ],
                             [
-                                'text' => ['type' => 'plain_text', 'text' => 'Delivery'],
+                                'text' => ['type' => 'plain_text', 'text' => 'Livraison (delivery)'],
                                 'value' => FulfillmentType::Delivery->value,
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'mode',
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Mode de commande',
+                    ],
+                    'element' => [
+                        'type' => 'static_select',
+                        'action_id' => 'mode_select',
+                        'initial_option' => [
+                            'text' => ['type' => 'plain_text', 'text' => OrderingMode::Individual->label()],
+                            'value' => OrderingMode::Individual->value,
+                        ],
+                        'options' => [
+                            [
+                                'text' => ['type' => 'plain_text', 'text' => OrderingMode::Individual->label()],
+                                'value' => OrderingMode::Individual->value,
+                            ],
+                            [
+                                'text' => ['type' => 'plain_text', 'text' => OrderingMode::Shared->label()],
+                                'value' => OrderingMode::Shared->value,
                             ],
                         ],
                     ],
@@ -179,7 +211,7 @@ class SlackBlockBuilder
                     'optional' => true,
                     'label' => [
                         'type' => 'plain_text',
-                        'text' => 'Plateforme (optionnel)',
+                        'text' => 'Plateforme / lien menu (optionnel)',
                     ],
                     'element' => [
                         'type' => 'plain_text_input',
@@ -194,7 +226,7 @@ class SlackBlockBuilder
     {
         $modal = [
             'type' => 'modal',
-            'callback_id' => SlackActions::CALLBACK_ENSEIGNE_CREATE,
+            'callback_id' => SlackAction::CallbackEnseigneCreate->value,
             'title' => [
                 'type' => 'plain_text',
                 'text' => 'Ajouter une enseigne',
@@ -221,7 +253,7 @@ class SlackBlockBuilder
     {
         return [
             'type' => 'modal',
-            'callback_id' => SlackActions::CALLBACK_ENSEIGNE_UPDATE,
+            'callback_id' => SlackAction::CallbackEnseigneUpdate->value,
             'private_metadata' => json_encode(array_merge(['vendor_id' => $vendor->id], $metadata), JSON_THROW_ON_ERROR),
             'title' => [
                 'type' => 'plain_text',
@@ -332,13 +364,58 @@ class SlackBlockBuilder
             ];
         }
 
+        if ($isEdit && $order) {
+            $blocks[] = ['type' => 'divider'];
+            $blocks[] = [
+                'type' => 'actions',
+                'block_id' => 'danger_zone',
+                'elements' => [
+                    [
+                        'type' => 'button',
+                        'text' => [
+                            'type' => 'plain_text',
+                            'text' => 'Supprimer ma commande',
+                        ],
+                        'action_id' => SlackAction::OrderDelete->value,
+                        'value' => (string) $order->id,
+                        'style' => 'danger',
+                        'confirm' => [
+                            'title' => [
+                                'type' => 'plain_text',
+                                'text' => 'Confirmer la suppression',
+                            ],
+                            'text' => [
+                                'type' => 'mrkdwn',
+                                'text' => 'Voulez-vous vraiment supprimer votre commande ? Cette action est irreversible.',
+                            ],
+                            'confirm' => [
+                                'type' => 'plain_text',
+                                'text' => 'Supprimer',
+                            ],
+                            'deny' => [
+                                'type' => 'plain_text',
+                                'text' => 'Annuler',
+                            ],
+                            'style' => 'danger',
+                        ],
+                    ],
+                ],
+            ];
+        }
+
+        $metadata = [
+            'proposal_id' => $proposal->id,
+            'lunch_session_id' => $proposal->lunch_session_id,
+        ];
+
+        if ($order) {
+            $metadata['order_id'] = $order->id;
+        }
+
         return [
             'type' => 'modal',
-            'callback_id' => $isEdit ? SlackActions::CALLBACK_ORDER_EDIT : SlackActions::CALLBACK_ORDER_CREATE,
-            'private_metadata' => json_encode([
-                'proposal_id' => $proposal->id,
-                'lunch_session_id' => $proposal->lunch_session_id,
-            ], JSON_THROW_ON_ERROR),
+            'callback_id' => $isEdit ? SlackAction::CallbackOrderEdit->value : SlackAction::CallbackOrderCreate->value,
+            'private_metadata' => json_encode($metadata, JSON_THROW_ON_ERROR),
             'title' => [
                 'type' => 'plain_text',
                 'text' => $isEdit ? 'Modifier commande' : 'Nouvelle commande',
@@ -359,7 +436,7 @@ class SlackBlockBuilder
     {
         return [
             'type' => 'modal',
-            'callback_id' => SlackActions::CALLBACK_ROLE_DELEGATE,
+            'callback_id' => SlackAction::CallbackRoleDelegate->value,
             'private_metadata' => json_encode([
                 'proposal_id' => $proposal->id,
                 'lunch_session_id' => $proposal->lunch_session_id,
@@ -394,6 +471,248 @@ class SlackBlockBuilder
         ];
     }
 
+    public function proposalManageModal(VendorProposal $proposal, string $userId): array
+    {
+        $vendor = $proposal->vendor;
+        $vendorName = $vendor?->name ?? 'Restaurant';
+        $isPickup = $proposal->fulfillment_type === FulfillmentType::Pickup;
+        $orderCount = $proposal->orders_count ?? $proposal->orders()->count();
+
+        $currentResponsible = $isPickup ? $proposal->runner_user_id : $proposal->orderer_user_id;
+        $roleLabel = $isPickup ? 'Runner' : 'Orderer';
+        $responsibleText = $currentResponsible ? "<@{$currentResponsible}>" : '_Non assigne_';
+
+        $blocks = [
+            [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => "*{$vendorName}*\n{$roleLabel} : {$responsibleText}\nCommandes : {$orderCount}",
+                ],
+            ],
+        ];
+
+        $canTakeCharge = $currentResponsible === null;
+        $isAlreadyInCharge = $proposal->hasRole($userId);
+
+        if ($canTakeCharge && ! $isAlreadyInCharge) {
+            $buttonText = $isPickup
+                ? "Je m'occupe d'aller chercher"
+                : "Je m'occupe de passer la commande";
+
+            $blocks[] = [
+                'type' => 'actions',
+                'block_id' => 'take_charge_actions',
+                'elements' => [
+                    [
+                        'type' => 'button',
+                        'text' => [
+                            'type' => 'plain_text',
+                            'text' => $buttonText,
+                        ],
+                        'action_id' => SlackAction::ProposalTakeCharge->value,
+                        'value' => (string) $proposal->id,
+                        'style' => 'primary',
+                    ],
+                ],
+            ];
+        } elseif ($isAlreadyInCharge) {
+            $blocks[] = [
+                'type' => 'context',
+                'elements' => [
+                    [
+                        'type' => 'mrkdwn',
+                        'text' => '_Vous etes deja en charge de cette commande._',
+                    ],
+                ],
+            ];
+        } else {
+            $blocks[] = [
+                'type' => 'context',
+                'elements' => [
+                    [
+                        'type' => 'mrkdwn',
+                        'text' => '_Un responsable est deja assigne._',
+                    ],
+                ],
+            ];
+        }
+
+        return [
+            'type' => 'modal',
+            'callback_id' => SlackAction::CallbackProposalManage->value,
+            'private_metadata' => json_encode([
+                'proposal_id' => $proposal->id,
+                'lunch_session_id' => $proposal->lunch_session_id,
+            ], JSON_THROW_ON_ERROR),
+            'title' => [
+                'type' => 'plain_text',
+                'text' => 'Gerer la commande',
+            ],
+            'close' => [
+                'type' => 'plain_text',
+                'text' => 'Fermer',
+            ],
+            'blocks' => $blocks,
+        ];
+    }
+
+    public function proposeRestaurantModal(LunchSession $session): array
+    {
+        return [
+            'type' => 'modal',
+            'callback_id' => SlackAction::CallbackRestaurantPropose->value,
+            'private_metadata' => json_encode(['lunch_session_id' => $session->id], JSON_THROW_ON_ERROR),
+            'title' => [
+                'type' => 'plain_text',
+                'text' => 'Proposer un restaurant',
+            ],
+            'submit' => [
+                'type' => 'plain_text',
+                'text' => 'Continuer',
+            ],
+            'close' => [
+                'type' => 'plain_text',
+                'text' => 'Annuler',
+            ],
+            'blocks' => [
+                [
+                    'type' => 'input',
+                    'block_id' => 'name',
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Nom du restaurant',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'name',
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'Ex: Sushi Wasabi',
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'cuisine_type',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Type de cuisine (optionnel)',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'cuisine_type',
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'Ex: Japonais, Italien, ...',
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'url_website',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Site web (optionnel)',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'url_website',
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'https://...',
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'url_menu',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Menu PDF (optionnel)',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'url_menu',
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'https://...menu.pdf',
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'notes',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Notes (optionnel)',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'notes',
+                        'multiline' => true,
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'fulfillment',
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Type',
+                    ],
+                    'element' => [
+                        'type' => 'static_select',
+                        'action_id' => 'fulfillment_type',
+                        'initial_option' => [
+                            'text' => ['type' => 'plain_text', 'text' => 'Sur place (pickup)'],
+                            'value' => FulfillmentType::Pickup->value,
+                        ],
+                        'options' => [
+                            [
+                                'text' => ['type' => 'plain_text', 'text' => 'Sur place (pickup)'],
+                                'value' => FulfillmentType::Pickup->value,
+                            ],
+                            [
+                                'text' => ['type' => 'plain_text', 'text' => 'Livraison (delivery)'],
+                                'value' => FulfillmentType::Delivery->value,
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'mode',
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Mode de commande',
+                    ],
+                    'element' => [
+                        'type' => 'static_select',
+                        'action_id' => 'mode_select',
+                        'initial_option' => [
+                            'text' => ['type' => 'plain_text', 'text' => OrderingMode::Individual->label()],
+                            'value' => OrderingMode::Individual->value,
+                        ],
+                        'options' => [
+                            [
+                                'text' => ['type' => 'plain_text', 'text' => OrderingMode::Individual->label()],
+                                'value' => OrderingMode::Individual->value,
+                            ],
+                            [
+                                'text' => ['type' => 'plain_text', 'text' => OrderingMode::Shared->label()],
+                                'value' => OrderingMode::Shared->value,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
     public function adjustPriceModal(VendorProposal $proposal, array $orders): array
     {
         $options = array_map(function (Order $order) {
@@ -414,7 +733,7 @@ class SlackBlockBuilder
 
         return [
             'type' => 'modal',
-            'callback_id' => SlackActions::CALLBACK_ORDER_ADJUST_PRICE,
+            'callback_id' => SlackAction::CallbackOrderAdjustPrice->value,
             'private_metadata' => json_encode([
                 'proposal_id' => $proposal->id,
                 'lunch_session_id' => $proposal->lunch_session_id,
@@ -513,15 +832,16 @@ class SlackBlockBuilder
         $actionElements = [];
 
         if ($session->isOpen()) {
-            $actionElements[] = $this->button('Proposer un restaurant', SlackActions::DASHBOARD_PROPOSE_VENDOR, (string) $session->id, 'primary');
+            $actionElements[] = $this->button('Proposer un restaurant', SlackAction::DashboardProposeVendor->value, (string) $session->id, 'primary');
+            $actionElements[] = $this->button('Choisir un favori', SlackAction::DashboardChooseFavorite->value, (string) $session->id);
         }
 
         if ($userOrder) {
-            $actionElements[] = $this->button('Ma commande', SlackActions::DASHBOARD_MY_ORDER, (string) $userOrder->vendor_proposal_id);
+            $actionElements[] = $this->button('Ma commande', SlackAction::DashboardMyOrder->value, (string) $userOrder->vendor_proposal_id);
         }
 
         if ($canClose && ! $session->isClosed()) {
-            $actionElements[] = $this->button('Cloturer la session', SlackActions::DASHBOARD_CLOSE_SESSION, (string) $session->id, 'danger');
+            $actionElements[] = $this->button('Cloturer la session', SlackAction::DashboardCloseSession->value, (string) $session->id, 'danger');
         }
 
         if (! empty($actionElements)) {
@@ -533,7 +853,7 @@ class SlackBlockBuilder
 
         return [
             'type' => 'modal',
-            'callback_id' => SlackActions::CALLBACK_LUNCH_DASHBOARD,
+            'callback_id' => SlackAction::CallbackLunchDashboard->value,
             'title' => [
                 'type' => 'plain_text',
                 'text' => 'Lunch Dashboard',
@@ -568,15 +888,15 @@ class SlackBlockBuilder
         $actionElements = [];
 
         if ($session->isOpen()) {
-            $actionElements[] = $this->button('Commander ici', SlackActions::DASHBOARD_ORDER_HERE, (string) $proposal->id, 'primary');
+            $actionElements[] = $this->button('Commander ici', SlackAction::DashboardOrderHere->value, (string) $proposal->id, 'primary');
 
             if (! $proposal->runner_user_id && ! $proposal->orderer_user_id) {
-                $actionElements[] = $this->button('Je prends en charge', SlackActions::DASHBOARD_CLAIM_RESPONSIBLE, (string) $proposal->id);
+                $actionElements[] = $this->button('Je prends en charge', SlackAction::DashboardClaimResponsible->value, (string) $proposal->id);
             }
         }
 
         if ($orderCount > 0) {
-            $actionElements[] = $this->button('Voir commandes', SlackActions::DASHBOARD_VIEW_ORDERS, (string) $proposal->id);
+            $actionElements[] = $this->button('Voir commandes', SlackAction::DashboardViewOrders->value, (string) $proposal->id);
         }
 
         if (! empty($actionElements)) {

@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\FulfillmentType;
+use App\Enums\OrderingMode;
 use App\Enums\ProposalStatus;
 use App\Models\LunchSession;
 use App\Models\Organization;
@@ -25,6 +26,7 @@ class VendorProposalFactory extends Factory
             'lunch_session_id' => LunchSession::factory(),
             'vendor_id' => Vendor::factory(),
             'fulfillment_type' => fake()->randomElement(FulfillmentType::cases()),
+            'ordering_mode' => OrderingMode::Individual,
             'runner_user_id' => null,
             'orderer_user_id' => null,
             'platform' => fake()->optional()->word(),
@@ -63,5 +65,15 @@ class VendorProposalFactory extends Factory
     public function delivery(): static
     {
         return $this->state(fn () => ['fulfillment_type' => FulfillmentType::Delivery]);
+    }
+
+    public function individual(): static
+    {
+        return $this->state(fn () => ['ordering_mode' => OrderingMode::Individual]);
+    }
+
+    public function shared(): static
+    {
+        return $this->state(fn () => ['ordering_mode' => OrderingMode::Shared]);
     }
 }

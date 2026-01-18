@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\FulfillmentType;
+use App\Enums\OrderingMode;
 use App\Enums\ProposalStatus;
 use App\Models\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,6 +21,7 @@ class VendorProposal extends Model
         'lunch_session_id',
         'vendor_id',
         'fulfillment_type',
+        'ordering_mode',
         'runner_user_id',
         'orderer_user_id',
         'platform',
@@ -30,6 +32,7 @@ class VendorProposal extends Model
 
     protected $casts = [
         'fulfillment_type' => FulfillmentType::class,
+        'ordering_mode' => OrderingMode::class,
         'status' => ProposalStatus::class,
     ];
 

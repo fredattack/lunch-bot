@@ -4,6 +4,7 @@ namespace Tests\Unit\Actions\VendorProposal;
 
 use App\Actions\VendorProposal\ProposeVendor;
 use App\Enums\FulfillmentType;
+use App\Enums\OrderingMode;
 use App\Enums\ProposalStatus;
 use App\Models\LunchSession;
 use App\Models\Vendor;
@@ -128,5 +129,56 @@ class ProposeVendorTest extends TestCase
         $proposal = $this->action->handle($session, $vendor, FulfillmentType::Pickup, null, 'U_CREATOR');
 
         $this->assertNull($proposal->platform);
+    }
+
+    public function test_auto_assigns_runner_for_pickup(): void
+    {
+        $session = LunchSession::factory()->open()->create();
+        $vendor = Vendor::factory()->create();
+        $userId = 'U_CREATOR';
+
+        $proposal = $this->action->handle($session, $vendor, FulfillmentType::Pickup, null, $userId);
+
+        $this->assertEquals($userId, $proposal->runner_user_id);
+        $this->assertNull($proposal->orderer_user_id);
+    }
+
+    public function test_auto_assigns_orderer_for_delivery(): void
+    {
+        $session = LunchSession::factory()->open()->create();
+        $vendor = Vendor::factory()->create();
+        $userId = 'U_CREATOR';
+
+        $proposal = $this->action->handle($session, $vendor, FulfillmentType::Delivery, null, $userId);
+
+        $this->assertNull($proposal->runner_user_id);
+        $this->assertEquals($userId, $proposal->orderer_user_id);
+    }
+
+    public function test_sets_ordering_mode_individual_by_default(): void
+    {
+        $session = LunchSession::factory()->open()->create();
+        $vendor = Vendor::factory()->create();
+
+        $proposal = $this->action->handle($session, $vendor, FulfillmentType::Pickup, null, 'U_CREATOR');
+
+        $this->assertEquals(OrderingMode::Individual, $proposal->ordering_mode);
+    }
+
+    public function test_sets_ordering_mode_shared_when_specified(): void
+    {
+        $session = LunchSession::factory()->open()->create();
+        $vendor = Vendor::factory()->create();
+
+        $proposal = $this->action->handle(
+            $session,
+            $vendor,
+            FulfillmentType::Pickup,
+            null,
+            'U_CREATOR',
+            OrderingMode::Shared
+        );
+
+        $this->assertEquals(OrderingMode::Shared, $proposal->ordering_mode);
     }
 }
