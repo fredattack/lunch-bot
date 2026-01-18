@@ -1,11 +1,15 @@
 # Lunch Bot Makefile - ngrok integration
-.PHONY: all help ngrok ngrok-setup ngrok-status ngrok-stop ngrok-logs ngrok-background ngrok-url
+.PHONY: all help ngrok ngrok-setup ngrok-status ngrok-stop ngrok-logs ngrok-background ngrok-url ssh-logs
 
 # Default shell for better error handling
 SHELL := /bin/bash
 
 # Laravel default port
 APP_PORT := 4480
+
+# SSH Configuration (override with: make ssh-logs SSH_HOST=user@server)
+SSH_HOST ?= root@146.190.225.184
+SSH_LOG_PATH ?= /var/www/lunch-bot/storage/logs/laravel.log
 
 # Colors for output
 RED := \033[0;31m
@@ -185,6 +189,19 @@ ngrok-logs:
 	fi
 
 # ============================================================================
+# SSH COMMANDS
+# ============================================================================
+
+## Stream Laravel logs from remote server in real-time
+ssh-logs:
+	@echo -e "$(BLUE)Connecting to $(SSH_HOST) for real-time logs...$(NC)"
+	@echo -e "$(CYAN)Log file: $(SSH_LOG_PATH)$(NC)"
+	@echo -e "$(YELLOW)============================================================$(NC)"
+	@echo -e "$(YELLOW)Press Ctrl+C to stop$(NC)"
+	@echo -e "$(YELLOW)============================================================$(NC)"
+	@ssh $(SSH_HOST) "tail -f $(SSH_LOG_PATH)"
+
+# ============================================================================
 # HELP
 # ============================================================================
 
@@ -201,6 +218,14 @@ help:
 	@echo -e "  $(BLUE)make ngrok-status$(NC)     - Check ngrok status and active tunnels"
 	@echo -e "  $(BLUE)make ngrok-stop$(NC)       - Stop all ngrok tunnels"
 	@echo -e "  $(BLUE)make ngrok-logs$(NC)       - Open ngrok web interface (localhost:4040)"
+	@echo -e ""
+	@echo -e "$(GREEN)SSH Commands:$(NC)"
+	@echo -e "  $(BLUE)make ssh-logs$(NC)         - Stream Laravel logs from remote server"
+	@echo -e "  $(PURPLE)  SSH_HOST=$(SSH_HOST)$(NC)"
+	@echo -e "  $(PURPLE)  SSH_LOG_PATH=$(SSH_LOG_PATH)$(NC)"
+	@echo -e ""
+	@echo -e "  $(CYAN)Override example:$(NC)"
+	@echo -e "  $(BLUE)make ssh-logs SSH_HOST=deploy@prod.example.com$(NC)"
 	@echo -e ""
 	@echo -e "$(YELLOW)Tips:$(NC)"
 	@echo -e "  - Run $(BLUE)composer dev$(NC) to start the Laravel dev server first"

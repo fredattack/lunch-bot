@@ -446,7 +446,7 @@ class SlackInteractionHandler
                     return;
                 }
                 $view = $this->blocks->proposeRestaurantModal($session);
-                $this->messenger->pushModal($triggerId, $view);
+                $this->messenger->openModal($triggerId, $view);
 
                 return;
             case SlackAction::DashboardChooseFavorite->value:
