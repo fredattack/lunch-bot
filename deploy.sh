@@ -22,7 +22,7 @@ composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
 # Install & build frontend (need dev deps for vite)
 echo "Building frontend assets..."
-npm install
+npm ci
 npm run build
 
 # Run migrations
