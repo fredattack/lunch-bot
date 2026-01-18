@@ -37,9 +37,13 @@ jobs:
           cp .env.example .env
           php artisan key:generate
           touch database/database.sqlite
+        env:
+          TZ: UTC
 
       - name: Run Pint (code style)
         run: vendor/bin/pint --test
 
       - name: Run tests
         run: php artisan test --compact
+        env:
+          TZ: UTC
