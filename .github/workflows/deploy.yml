@@ -59,6 +59,15 @@ jobs:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
+          envs: SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET
           script: |
             cd /var/www/lunch-bot
+
+            # Update Slack secrets in .env
+            sed -i "s|^SLACK_BOT_TOKEN=.*|SLACK_BOT_TOKEN=$SLACK_BOT_TOKEN|" .env
+            sed -i "s|^SLACK_SIGNING_SECRET=.*|SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET|" .env
+
             ./deploy.sh
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_SIGNING_SECRET: ${{ secrets.SLACK_SIGNING_SECRET }}
