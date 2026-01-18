@@ -16,10 +16,10 @@ class ProposeVendor
         LunchSession $session,
         Vendor $vendor,
         FulfillmentType $fulfillment,
-        ?string $platform,
         string $createdByUserId,
-        OrderingMode $orderingMode = OrderingMode::Individual,
-        string $deadlineTime = '11:30'
+        string $deadlineTime = '11:30',
+        ?string $note = null,
+        bool $helpRequested = false
     ): VendorProposal {
         if (! $session->isOpen()) {
             throw new InvalidArgumentException('Lunch session is not open.');
@@ -42,11 +42,12 @@ class ProposeVendor
             'lunch_session_id' => $session->id,
             'vendor_id' => $vendor->id,
             'fulfillment_type' => $fulfillment,
-            'ordering_mode' => $orderingMode,
+            'ordering_mode' => OrderingMode::Shared,
             'deadline_time' => $deadlineTime,
+            'help_requested' => $helpRequested,
+            'note' => $note,
             'runner_user_id' => $runnerUserId,
             'orderer_user_id' => $ordererUserId,
-            'platform' => $platform,
             'status' => ProposalStatus::Open,
             'created_by_provider_user_id' => $createdByUserId,
         ]);

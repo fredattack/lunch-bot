@@ -3,7 +3,6 @@
 namespace App\Services\Slack;
 
 use App\Enums\FulfillmentType;
-use App\Enums\OrderingMode;
 use App\Enums\SlackAction;
 use App\Models\LunchSession;
 use App\Models\Order;
@@ -180,28 +179,12 @@ class SlackBlockBuilder
                     ],
                 ],
                 [
-                    'type' => 'input',
-                    'block_id' => 'mode',
-                    'label' => [
-                        'type' => 'plain_text',
-                        'text' => 'Mode de commande',
-                    ],
-                    'element' => [
-                        'type' => 'static_select',
-                        'action_id' => 'mode_select',
-                        'initial_option' => [
-                            'text' => ['type' => 'plain_text', 'text' => OrderingMode::Individual->label()],
-                            'value' => OrderingMode::Individual->value,
-                        ],
-                        'options' => [
-                            [
-                                'text' => ['type' => 'plain_text', 'text' => OrderingMode::Individual->label()],
-                                'value' => OrderingMode::Individual->value,
-                            ],
-                            [
-                                'text' => ['type' => 'plain_text', 'text' => OrderingMode::Shared->label()],
-                                'value' => OrderingMode::Shared->value,
-                            ],
+                    'type' => 'context',
+                    'block_id' => 'mode_info',
+                    'elements' => [
+                        [
+                            'type' => 'mrkdwn',
+                            'text' => '*Mode :* Commande groupee',
                         ],
                     ],
                 ],
@@ -225,15 +208,42 @@ class SlackBlockBuilder
                 ],
                 [
                     'type' => 'input',
-                    'block_id' => 'platform',
+                    'block_id' => 'note',
                     'optional' => true,
                     'label' => [
                         'type' => 'plain_text',
-                        'text' => 'Plateforme / lien menu (optionnel)',
+                        'text' => 'Remarque (optionnel)',
                     ],
                     'element' => [
                         'type' => 'plain_text_input',
-                        'action_id' => 'platform',
+                        'action_id' => 'note',
+                        'multiline' => true,
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'Instructions particulieres...',
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'help',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Besoin d\'aide ?',
+                    ],
+                    'element' => [
+                        'type' => 'checkboxes',
+                        'action_id' => 'help_requested',
+                        'options' => [
+                            [
+                                'text' => [
+                                    'type' => 'mrkdwn',
+                                    'text' => 'Je suis tres occupe — quelqu\'un peut s\'en occuper ?',
+                                ],
+                                'value' => 'help_requested',
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -663,20 +673,6 @@ class SlackBlockBuilder
                 ],
                 [
                     'type' => 'input',
-                    'block_id' => 'notes',
-                    'optional' => true,
-                    'label' => [
-                        'type' => 'plain_text',
-                        'text' => 'Notes (optionnel)',
-                    ],
-                    'element' => [
-                        'type' => 'plain_text_input',
-                        'action_id' => 'notes',
-                        'multiline' => true,
-                    ],
-                ],
-                [
-                    'type' => 'input',
                     'block_id' => 'fulfillment',
                     'label' => [
                         'type' => 'plain_text',
@@ -702,28 +698,12 @@ class SlackBlockBuilder
                     ],
                 ],
                 [
-                    'type' => 'input',
-                    'block_id' => 'mode',
-                    'label' => [
-                        'type' => 'plain_text',
-                        'text' => 'Mode de commande',
-                    ],
-                    'element' => [
-                        'type' => 'static_select',
-                        'action_id' => 'mode_select',
-                        'initial_option' => [
-                            'text' => ['type' => 'plain_text', 'text' => OrderingMode::Individual->label()],
-                            'value' => OrderingMode::Individual->value,
-                        ],
-                        'options' => [
-                            [
-                                'text' => ['type' => 'plain_text', 'text' => OrderingMode::Individual->label()],
-                                'value' => OrderingMode::Individual->value,
-                            ],
-                            [
-                                'text' => ['type' => 'plain_text', 'text' => OrderingMode::Shared->label()],
-                                'value' => OrderingMode::Shared->value,
-                            ],
+                    'type' => 'context',
+                    'block_id' => 'mode_info',
+                    'elements' => [
+                        [
+                            'type' => 'mrkdwn',
+                            'text' => '*Mode :* Commande groupee',
                         ],
                     ],
                 ],
@@ -742,6 +722,46 @@ class SlackBlockBuilder
                         'placeholder' => [
                             'type' => 'plain_text',
                             'text' => 'HH:MM',
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'note',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Remarque (optionnel)',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'note',
+                        'multiline' => true,
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'Instructions particulieres...',
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'help',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Besoin d\'aide ?',
+                    ],
+                    'element' => [
+                        'type' => 'checkboxes',
+                        'action_id' => 'help_requested',
+                        'options' => [
+                            [
+                                'text' => [
+                                    'type' => 'mrkdwn',
+                                    'text' => 'Je suis tres occupe — quelqu\'un peut s\'en occuper ?',
+                                ],
+                                'value' => 'help_requested',
+                            ],
                         ],
                     ],
                 ],

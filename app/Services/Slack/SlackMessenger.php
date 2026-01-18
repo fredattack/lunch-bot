@@ -43,12 +43,18 @@ class SlackMessenger
         $fulfillmentLabel = $proposal->fulfillment_type === FulfillmentType::Pickup ? 'pickup' : 'delivery';
         $date = $proposal->lunchSession->date->format('Y-m-d');
 
+        $messageText = "*Nouvelle commande lancee*\n{$vendorName} — {$fulfillmentLabel}\nPar <@{$createdByUserId}>";
+
+        if ($proposal->help_requested) {
+            $messageText .= "\n:warning: *Aide demandee : le createur est tres occupe.*";
+        }
+
         $blocks = [
             [
                 'type' => 'section',
                 'text' => [
                     'type' => 'mrkdwn',
-                    'text' => "*Nouvelle commande lancee*\n{$vendorName} — {$fulfillmentLabel}\nPar <@{$createdByUserId}>",
+                    'text' => $messageText,
                 ],
             ],
             [

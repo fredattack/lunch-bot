@@ -117,7 +117,7 @@ class ProposeRestaurantTest extends TestCase
         $this->assertEquals($userId, $proposal->orderer_user_id);
     }
 
-    public function test_sets_ordering_mode_individual_by_default(): void
+    public function test_sets_ordering_mode_shared_always(): void
     {
         $session = LunchSession::factory()->for($this->organization)->open()->create();
 
@@ -128,10 +128,10 @@ class ProposeRestaurantTest extends TestCase
             'U_CREATOR'
         );
 
-        $this->assertEquals(OrderingMode::Individual, $proposal->ordering_mode);
+        $this->assertEquals(OrderingMode::Shared, $proposal->ordering_mode);
     }
 
-    public function test_sets_ordering_mode_shared_when_specified(): void
+    public function test_sets_deadline_time(): void
     {
         $session = LunchSession::factory()->for($this->organization)->open()->create();
 
@@ -140,9 +140,56 @@ class ProposeRestaurantTest extends TestCase
             ['name' => 'Test Restaurant'],
             FulfillmentType::Pickup,
             'U_CREATOR',
-            OrderingMode::Shared
+            '12:00'
         );
 
-        $this->assertEquals(OrderingMode::Shared, $proposal->ordering_mode);
+        $this->assertEquals('12:00', $proposal->deadline_time);
+    }
+
+    public function test_sets_note(): void
+    {
+        $session = LunchSession::factory()->for($this->organization)->open()->create();
+
+        $proposal = $this->action->handle(
+            $session,
+            ['name' => 'Test Restaurant'],
+            FulfillmentType::Pickup,
+            'U_CREATOR',
+            '11:30',
+            'Special instructions'
+        );
+
+        $this->assertEquals('Special instructions', $proposal->note);
+    }
+
+    public function test_sets_help_requested(): void
+    {
+        $session = LunchSession::factory()->for($this->organization)->open()->create();
+
+        $proposal = $this->action->handle(
+            $session,
+            ['name' => 'Test Restaurant'],
+            FulfillmentType::Pickup,
+            'U_CREATOR',
+            '11:30',
+            null,
+            true
+        );
+
+        $this->assertTrue($proposal->help_requested);
+    }
+
+    public function test_help_requested_defaults_to_false(): void
+    {
+        $session = LunchSession::factory()->for($this->organization)->open()->create();
+
+        $proposal = $this->action->handle(
+            $session,
+            ['name' => 'Test Restaurant'],
+            FulfillmentType::Pickup,
+            'U_CREATOR'
+        );
+
+        $this->assertFalse($proposal->help_requested);
     }
 }

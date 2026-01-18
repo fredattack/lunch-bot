@@ -23,6 +23,8 @@ class VendorProposal extends Model
         'fulfillment_type',
         'ordering_mode',
         'deadline_time',
+        'help_requested',
+        'note',
         'runner_user_id',
         'orderer_user_id',
         'platform',
@@ -35,6 +37,7 @@ class VendorProposal extends Model
         'fulfillment_type' => FulfillmentType::class,
         'ordering_mode' => OrderingMode::class,
         'status' => ProposalStatus::class,
+        'help_requested' => 'boolean',
     ];
 
     public function lunchSession(): BelongsTo

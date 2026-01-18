@@ -18,8 +18,7 @@ class ProposeRestaurant
      *     name: string,
      *     cuisine_type?: ?string,
      *     url_website?: ?string,
-     *     url_menu?: ?string,
-     *     notes?: ?string
+     *     url_menu?: ?string
      * } $vendorData
      */
     public function handle(
@@ -27,14 +26,15 @@ class ProposeRestaurant
         array $vendorData,
         FulfillmentType $fulfillment,
         string $proposedByUserId,
-        OrderingMode $orderingMode = OrderingMode::Individual,
-        string $deadlineTime = '11:30'
+        string $deadlineTime = '11:30',
+        ?string $note = null,
+        bool $helpRequested = false
     ): VendorProposal {
         if (! $session->isOpen()) {
             throw new InvalidArgumentException('La session de lunch est fermee.');
         }
 
-        return DB::transaction(function () use ($session, $vendorData, $fulfillment, $proposedByUserId, $orderingMode, $deadlineTime) {
+        return DB::transaction(function () use ($session, $vendorData, $fulfillment, $proposedByUserId, $deadlineTime, $note, $helpRequested) {
             $vendor = $this->findOrCreateVendor($session, $vendorData, $proposedByUserId);
 
             $existing = VendorProposal::query()
@@ -54,8 +54,10 @@ class ProposeRestaurant
                 'lunch_session_id' => $session->id,
                 'vendor_id' => $vendor->id,
                 'fulfillment_type' => $fulfillment,
-                'ordering_mode' => $orderingMode,
+                'ordering_mode' => OrderingMode::Shared,
                 'deadline_time' => $deadlineTime,
+                'help_requested' => $helpRequested,
+                'note' => $note,
                 'runner_user_id' => $runnerUserId,
                 'orderer_user_id' => $ordererUserId,
                 'status' => ProposalStatus::Open,
@@ -69,8 +71,7 @@ class ProposeRestaurant
      *     name: string,
      *     cuisine_type?: ?string,
      *     url_website?: ?string,
-     *     url_menu?: ?string,
-     *     notes?: ?string
+     *     url_menu?: ?string
      * } $data
      */
     private function findOrCreateVendor(LunchSession $session, array $data, string $createdByUserId): Vendor
@@ -92,7 +93,6 @@ class ProposeRestaurant
             'cuisine_type' => $data['cuisine_type'] ?? null,
             'url_website' => $data['url_website'] ?? null,
             'url_menu' => $data['url_menu'] ?? null,
-            'notes' => $data['notes'] ?? null,
             'active' => true,
             'created_by_provider_user_id' => $createdByUserId,
         ]);
@@ -103,8 +103,7 @@ class ProposeRestaurant
      *     name: string,
      *     cuisine_type?: ?string,
      *     url_website?: ?string,
-     *     url_menu?: ?string,
-     *     notes?: ?string
+     *     url_menu?: ?string
      * } $data
      */
     private function updateVendorIfNeeded(Vendor $vendor, array $data): void

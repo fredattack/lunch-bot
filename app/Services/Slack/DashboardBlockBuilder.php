@@ -315,6 +315,19 @@ class DashboardBlockBuilder
             ],
         ];
 
+        if ($proposal->help_requested) {
+            $blocks[] = [
+                'type' => 'context',
+                'block_id' => "proposal_help_{$proposal->id}",
+                'elements' => [
+                    [
+                        'type' => 'mrkdwn',
+                        'text' => ':warning: *Aide demandee*',
+                    ],
+                ],
+            ];
+        }
+
         $urlButtons = $this->vendorUrlButtons($vendor);
         if (! empty($urlButtons)) {
             $blocks[] = [
@@ -362,11 +375,11 @@ class DashboardBlockBuilder
         $buttons = [];
 
         if (! empty($vendor->url_website)) {
-            $buttons[] = $this->urlButton('Site', $vendor->url_website);
+            $buttons[] = $this->urlButton('Site web', $vendor->url_website);
         }
 
         if (! empty($vendor->url_menu)) {
-            $buttons[] = $this->urlButton('Menu', $vendor->url_menu);
+            $buttons[] = $this->urlButton('Menu PDF', $vendor->url_menu);
         }
 
         return $buttons;

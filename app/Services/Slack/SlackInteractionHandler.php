@@ -15,7 +15,6 @@ use App\Actions\VendorProposal\ProposeRestaurant;
 use App\Actions\VendorProposal\ProposeVendor;
 use App\Authorization\Actor;
 use App\Enums\FulfillmentType;
-use App\Enums\OrderingMode;
 use App\Enums\ProposalStatus;
 use App\Enums\SlackAction;
 use App\Models\LunchSession;
@@ -615,9 +614,9 @@ class SlackInteractionHandler
         $state = $payload['view']['state']['values'] ?? [];
         $vendorId = $this->stateValue($state, 'enseigne', 'enseigne_id');
         $fulfillment = $this->stateValue($state, 'fulfillment', 'fulfillment_type');
-        $platform = $this->stateValue($state, 'platform', 'platform');
-        $orderingMode = $this->stateValue($state, 'mode', 'mode_select');
         $deadlineTime = $this->stateValue($state, 'deadline', 'deadline_time') ?: '11:30';
+        $note = $this->stateValue($state, 'note', 'note');
+        $helpRequested = $this->stateCheckboxHasValue($state, 'help', 'help_requested', 'help_requested');
 
         if ($fulfillment && ! in_array($fulfillment, [FulfillmentType::Pickup->value, FulfillmentType::Delivery->value], true)) {
             return $this->viewErrorResponse(['fulfillment' => 'Type invalide.']);
@@ -633,10 +632,10 @@ class SlackInteractionHandler
                 $session,
                 $vendor,
                 FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
-                $platform ?: null,
                 $userId,
-                OrderingMode::tryFrom($orderingMode ?? '') ?? OrderingMode::Individual,
-                $deadlineTime
+                $deadlineTime,
+                $note ?: null,
+                $helpRequested
             );
 
             $proposal->setRelation('lunchSession', $session);
@@ -671,10 +670,10 @@ class SlackInteractionHandler
         $cuisineType = $this->stateValue($state, 'cuisine_type', 'cuisine_type');
         $urlWebsite = $this->stateValue($state, 'url_website', 'url_website');
         $urlMenu = $this->stateValue($state, 'url_menu', 'url_menu');
-        $notes = $this->stateValue($state, 'notes', 'notes');
         $fulfillment = $this->stateValue($state, 'fulfillment', 'fulfillment_type');
-        $orderingMode = $this->stateValue($state, 'mode', 'mode_select');
         $deadlineTime = $this->stateValue($state, 'deadline', 'deadline_time') ?: '11:30';
+        $note = $this->stateValue($state, 'note', 'note');
+        $helpRequested = $this->stateCheckboxHasValue($state, 'help', 'help_requested', 'help_requested');
 
         if (! $name) {
             return $this->viewErrorResponse(['name' => 'Nom du restaurant requis.']);
@@ -692,12 +691,12 @@ class SlackInteractionHandler
                     'cuisine_type' => $cuisineType ?: null,
                     'url_website' => $urlWebsite ?: null,
                     'url_menu' => $urlMenu ?: null,
-                    'notes' => $notes ?: null,
                 ],
                 FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
                 $userId,
-                OrderingMode::tryFrom($orderingMode ?? '') ?? OrderingMode::Individual,
-                $deadlineTime
+                $deadlineTime,
+                $note ?: null,
+                $helpRequested
             );
 
             $proposal->load(['lunchSession', 'vendor']);
@@ -1020,6 +1019,19 @@ class SlackInteractionHandler
         return Arr::get($state, "{$blockId}.{$actionId}.value")
             ?? Arr::get($state, "{$blockId}.{$actionId}.selected_option.value")
             ?? Arr::get($state, "{$blockId}.{$actionId}.selected_user");
+    }
+
+    private function stateCheckboxHasValue(array $state, string $blockId, string $actionId, string $value): bool
+    {
+        $selectedOptions = Arr::get($state, "{$blockId}.{$actionId}.selected_options", []);
+
+        foreach ($selectedOptions as $option) {
+            if (($option['value'] ?? null) === $value) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function decodeMetadata(string $metadata): array

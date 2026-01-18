@@ -273,8 +273,8 @@ class DashboardBlockBuilderTest extends TestCase
         $modal = $this->builder->buildModal($context);
         $blocksJson = json_encode($modal['blocks']);
 
-        $this->assertStringContainsString('"text":"Site"', $blocksJson);
-        $this->assertStringContainsString('"text":"Menu"', $blocksJson);
+        $this->assertStringContainsString('"text":"Site web"', $blocksJson);
+        $this->assertStringContainsString('"text":"Menu PDF"', $blocksJson);
         $this->assertStringContainsString('https:\/\/example.com', $blocksJson);
         $this->assertStringContainsString('https:\/\/example.com\/menu', $blocksJson);
     }
@@ -295,8 +295,8 @@ class DashboardBlockBuilderTest extends TestCase
         $modal = $this->builder->buildModal($context);
         $blocksJson = json_encode($modal['blocks']);
 
-        $this->assertStringNotContainsString('"text":"Site"', $blocksJson);
-        $this->assertStringNotContainsString('"text":"Menu"', $blocksJson);
+        $this->assertStringNotContainsString('"text":"Site web"', $blocksJson);
+        $this->assertStringNotContainsString('"text":"Menu PDF"', $blocksJson);
     }
 
     public function test_header_shows_only_date_without_deadline(): void
@@ -310,5 +310,38 @@ class DashboardBlockBuilderTest extends TestCase
 
         $this->assertStringNotContainsString('Deadline :', $blocksJson);
         $this->assertStringNotContainsString('Lunch -', $blocksJson);
+    }
+
+    public function test_proposal_card_shows_help_requested_badge(): void
+    {
+        $session = $this->createTodaySession();
+        VendorProposal::factory()->for($session)->create([
+            'status' => ProposalStatus::Open,
+            'help_requested' => true,
+        ]);
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+        $blocksJson = json_encode($modal['blocks']);
+
+        $this->assertStringContainsString(':warning:', $blocksJson);
+        $this->assertStringContainsString('Aide demandee', $blocksJson);
+    }
+
+    public function test_proposal_card_hides_help_badge_when_not_requested(): void
+    {
+        $session = $this->createTodaySession();
+        VendorProposal::factory()->for($session)->create([
+            'status' => ProposalStatus::Open,
+            'help_requested' => false,
+        ]);
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+        $blocksJson = json_encode($modal['blocks']);
+
+        $this->assertStringNotContainsString('Aide demandee', $blocksJson);
     }
 }
