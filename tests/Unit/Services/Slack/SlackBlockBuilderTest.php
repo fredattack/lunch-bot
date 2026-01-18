@@ -181,4 +181,24 @@ class SlackBlockBuilderTest extends TestCase
         $dangerZone = collect($modal['blocks'])->firstWhere('block_id', 'danger_zone');
         $this->assertNull($dangerZone);
     }
+
+    public function test_error_modal_shows_title_and_message(): void
+    {
+        $modal = $this->builder->errorModal('Erreur', 'Une erreur est survenue.');
+
+        $this->assertEquals('modal', $modal['type']);
+        $this->assertEquals('Erreur', $modal['title']['text']);
+        $this->assertEquals('Fermer', $modal['close']['text']);
+        $this->assertCount(2, $modal['blocks']);
+        $this->assertStringContainsString(':warning:', $modal['blocks'][0]['text']['text']);
+        $this->assertStringContainsString('Erreur', $modal['blocks'][0]['text']['text']);
+        $this->assertStringContainsString('Une erreur est survenue.', $modal['blocks'][1]['text']['text']);
+    }
+
+    public function test_error_modal_truncates_long_title(): void
+    {
+        $modal = $this->builder->errorModal('This is a very long error title that exceeds limit', 'Message');
+
+        $this->assertLessThanOrEqual(24, mb_strlen($modal['title']['text']));
+    }
 }

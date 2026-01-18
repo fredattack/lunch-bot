@@ -49,6 +49,10 @@ class SlackMessenger
             $messageText .= "\n:warning: *Aide demandee : le createur est tres occupe.*";
         }
 
+        if ($proposal->note) {
+            $messageText .= "\n\n:memo: _{$proposal->note}_";
+        }
+
         $blocks = [
             [
                 'type' => 'section',

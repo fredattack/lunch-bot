@@ -922,6 +922,37 @@ class SlackBlockBuilder
         ];
     }
 
+    public function errorModal(string $title, string $message): array
+    {
+        return [
+            'type' => 'modal',
+            'title' => [
+                'type' => 'plain_text',
+                'text' => mb_substr($title, 0, 24),
+            ],
+            'close' => [
+                'type' => 'plain_text',
+                'text' => 'Fermer',
+            ],
+            'blocks' => [
+                [
+                    'type' => 'section',
+                    'text' => [
+                        'type' => 'mrkdwn',
+                        'text' => ":warning: *{$title}*",
+                    ],
+                ],
+                [
+                    'type' => 'section',
+                    'text' => [
+                        'type' => 'mrkdwn',
+                        'text' => $message,
+                    ],
+                ],
+            ],
+        ];
+    }
+
     private function dashboardProposalBlocks(VendorProposal $proposal, LunchSession $session): array
     {
         $vendor = $proposal->vendor;

@@ -559,41 +559,30 @@ class SlackInteractionHandler
         $callbackId = $payload['view']['callback_id'] ?? '';
         $userId = $payload['user']['id'] ?? '';
 
-        switch ($callbackId) {
-            case SlackAction::CallbackProposalCreate->value:
-            case 'proposal.create': // Legacy
-                return $this->handleProposalSubmission($payload, $userId);
+        try {
+            return match ($callbackId) {
+                SlackAction::CallbackProposalCreate->value, 'proposal.create' => $this->handleProposalSubmission($payload, $userId),
+                SlackAction::CallbackRestaurantPropose->value, 'restaurant.propose' => $this->handleRestaurantPropose($payload, $userId),
+                SlackAction::CallbackEnseigneCreate->value, 'enseigne.create' => $this->handleVendorCreate($payload, $userId),
+                SlackAction::CallbackEnseigneUpdate->value, 'enseigne.update' => $this->handleVendorUpdate($payload, $userId),
+                SlackAction::CallbackOrderCreate->value, 'order.create' => $this->handleOrderCreate($payload, $userId),
+                SlackAction::CallbackOrderEdit->value, 'order.edit' => $this->handleOrderEdit($payload, $userId),
+                SlackAction::CallbackRoleDelegate->value, 'role.delegate' => $this->handleRoleDelegate($payload, $userId),
+                SlackAction::CallbackOrderAdjustPrice->value, 'order.adjust_price' => $this->handleAdjustPrice($payload, $userId),
+                default => response('', 200),
+            };
+        } catch (InvalidArgumentException $e) {
+            Log::warning('Slack view submission business error', ['message' => $e->getMessage()]);
 
-            case SlackAction::CallbackRestaurantPropose->value:
-            case 'restaurant.propose': // Legacy
-                return $this->handleRestaurantPropose($payload, $userId);
+            return $this->viewUpdateResponse(
+                $this->blocks->errorModal('Erreur', $e->getMessage())
+            );
+        } catch (\Throwable $e) {
+            Log::error('Slack view submission error', ['exception' => $e->getMessage()]);
 
-            case SlackAction::CallbackEnseigneCreate->value:
-            case 'enseigne.create': // Legacy
-                return $this->handleVendorCreate($payload, $userId);
-
-            case SlackAction::CallbackEnseigneUpdate->value:
-            case 'enseigne.update': // Legacy
-                return $this->handleVendorUpdate($payload, $userId);
-
-            case SlackAction::CallbackOrderCreate->value:
-            case 'order.create': // Legacy
-                return $this->handleOrderCreate($payload, $userId);
-
-            case SlackAction::CallbackOrderEdit->value:
-            case 'order.edit': // Legacy
-                return $this->handleOrderEdit($payload, $userId);
-
-            case SlackAction::CallbackRoleDelegate->value:
-            case 'role.delegate': // Legacy
-                return $this->handleRoleDelegate($payload, $userId);
-
-            case SlackAction::CallbackOrderAdjustPrice->value:
-            case 'order.adjust_price': // Legacy
-                return $this->handleAdjustPrice($payload, $userId);
-
-            default:
-                return response('', 200);
+            return $this->viewUpdateResponse(
+                $this->blocks->errorModal('Erreur', 'Une erreur est survenue. Veuillez reessayer.')
+            );
         }
     }
 
@@ -627,28 +616,22 @@ class SlackInteractionHandler
             return $this->viewErrorResponse(['enseigne' => 'Enseigne invalide.']);
         }
 
-        try {
-            $proposal = $this->proposeVendor->handle(
-                $session,
-                $vendor,
-                FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
-                $userId,
-                $deadlineTime,
-                $note ?: null,
-                $helpRequested
-            );
+        $proposal = $this->proposeVendor->handle(
+            $session,
+            $vendor,
+            FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
+            $userId,
+            $deadlineTime,
+            $note ?: null,
+            $helpRequested
+        );
 
-            $proposal->setRelation('lunchSession', $session);
-            $proposal->setRelation('vendor', $vendor);
+        $proposal->setRelation('lunchSession', $session);
+        $proposal->setRelation('vendor', $vendor);
 
-            $orderModal = $this->blocks->orderModal($proposal, null, false, false);
+        $orderModal = $this->blocks->orderModal($proposal, null, false, false);
 
-            return $this->viewUpdateResponse($orderModal);
-        } catch (InvalidArgumentException $e) {
-            $this->messenger->postEphemeral($session->provider_channel_id, $userId, $e->getMessage());
-        }
-
-        return response('', 200);
+        return $this->viewUpdateResponse($orderModal);
     }
 
     private function handleRestaurantPropose(array $payload, string $userId): Response
@@ -683,32 +666,26 @@ class SlackInteractionHandler
             return $this->viewErrorResponse(['fulfillment' => 'Type invalide.']);
         }
 
-        try {
-            $proposal = $this->proposeRestaurant->handle(
-                $session,
-                [
-                    'name' => $name,
-                    'cuisine_type' => $cuisineType ?: null,
-                    'url_website' => $urlWebsite ?: null,
-                    'url_menu' => $urlMenu ?: null,
-                ],
-                FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
-                $userId,
-                $deadlineTime,
-                $note ?: null,
-                $helpRequested
-            );
+        $proposal = $this->proposeRestaurant->handle(
+            $session,
+            [
+                'name' => $name,
+                'cuisine_type' => $cuisineType ?: null,
+                'url_website' => $urlWebsite ?: null,
+                'url_menu' => $urlMenu ?: null,
+            ],
+            FulfillmentType::from($fulfillment ?: FulfillmentType::Pickup->value),
+            $userId,
+            $deadlineTime,
+            $note ?: null,
+            $helpRequested
+        );
 
-            $proposal->load(['lunchSession', 'vendor']);
+        $proposal->load(['lunchSession', 'vendor']);
 
-            $orderModal = $this->blocks->orderModal($proposal, null, false, false);
+        $orderModal = $this->blocks->orderModal($proposal, null, false, false);
 
-            return $this->viewUpdateResponse($orderModal);
-        } catch (InvalidArgumentException $e) {
-            $this->messenger->postEphemeral($session->provider_channel_id, $userId, $e->getMessage());
-        }
-
-        return response('', 200);
+        return $this->viewUpdateResponse($orderModal);
     }
 
     private function handleVendorCreate(array $payload, string $userId): Response
@@ -794,21 +771,17 @@ class SlackInteractionHandler
         $isFirstOrderForProposal = ! $proposal->provider_message_ts
             && $proposal->orders()->count() === 0;
 
-        try {
-            if ($existingOrder) {
-                $this->updateOrder->handle($existingOrder, $data, $userId);
-            } else {
-                $this->createOrder->handle($proposal, $userId, $data);
-            }
-
-            if ($isFirstOrderForProposal && ! $existingOrder) {
-                $this->messenger->postOrderCreatedMessage($proposal, $userId);
-            }
-
-            $this->postOptionalFeedback($payload, $userId, 'Commande enregistree.');
-        } catch (InvalidArgumentException $e) {
-            $this->messenger->postEphemeral($proposal->lunchSession->provider_channel_id, $userId, $e->getMessage());
+        if ($existingOrder) {
+            $this->updateOrder->handle($existingOrder, $data, $userId);
+        } else {
+            $this->createOrder->handle($proposal, $userId, $data);
         }
+
+        if ($isFirstOrderForProposal && ! $existingOrder) {
+            $this->messenger->postOrderCreatedMessage($proposal, $userId);
+        }
+
+        $this->postOptionalFeedback($payload, $userId, 'Commande enregistree.');
 
         return $this->viewClearResponse();
     }
