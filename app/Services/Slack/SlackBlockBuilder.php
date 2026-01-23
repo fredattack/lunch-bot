@@ -88,7 +88,7 @@ class SlackBlockBuilder
         $lines = [];
         foreach ($orders as $order) {
             $final = $order->price_final !== null ? number_format((float) $order->price_final, 2) : '-';
-            $estimated = number_format((float) $order->price_estimated, 2);
+            $estimated = $order->price_estimated !== null ? number_format((float) $order->price_estimated, 2) : '-';
             $lines[] = "- <@{$order->provider_user_id}>: {$order->description} (est: {$estimated}, final: {$final})";
         }
 
@@ -107,6 +107,73 @@ class SlackBlockBuilder
                     'text' => $text,
                 ],
             ],
+        ];
+    }
+
+    public function recapModal(VendorProposal $proposal, array $orders, array $totals): array
+    {
+        $vendor = $proposal->vendor;
+        $vendorName = $vendor?->name ?? 'Restaurant';
+
+        $blocks = [
+            [
+                'type' => 'header',
+                'text' => [
+                    'type' => 'plain_text',
+                    'text' => "Recapitulatif - {$vendorName}",
+                ],
+            ],
+            [
+                'type' => 'divider',
+            ],
+        ];
+
+        if (empty($orders)) {
+            $blocks[] = [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => '_Aucune commande pour le moment._',
+                ],
+            ];
+        } else {
+            foreach ($orders as $order) {
+                $priceEstimated = $order->price_estimated !== null ? number_format((float) $order->price_estimated, 2).' EUR' : '-';
+                $priceFinal = $order->price_final !== null ? number_format((float) $order->price_final, 2).' EUR' : '-';
+                $description = strlen($order->description) > 50
+                    ? substr($order->description, 0, 47).'...'
+                    : $order->description;
+
+                $blocks[] = [
+                    'type' => 'section',
+                    'text' => [
+                        'type' => 'mrkdwn',
+                        'text' => "<@{$order->provider_user_id}>\n_{$description}_\nEstime: {$priceEstimated} | Final: {$priceFinal}",
+                    ],
+                ];
+            }
+        }
+
+        $blocks[] = ['type' => 'divider'];
+        $blocks[] = [
+            'type' => 'section',
+            'text' => [
+                'type' => 'mrkdwn',
+                'text' => "*Total estime:* {$totals['estimated']} EUR\n*Total final:* {$totals['final']} EUR",
+            ],
+        ];
+
+        return [
+            'type' => 'modal',
+            'title' => [
+                'type' => 'plain_text',
+                'text' => 'Recapitulatif',
+            ],
+            'close' => [
+                'type' => 'plain_text',
+                'text' => 'Fermer',
+            ],
+            'blocks' => $blocks,
         ];
     }
 
@@ -348,6 +415,7 @@ class SlackBlockBuilder
             [
                 'type' => 'input',
                 'block_id' => 'price_estimated',
+                'optional' => true,
                 'label' => [
                     'type' => 'plain_text',
                     'text' => 'Prix estime',
@@ -621,6 +689,24 @@ class SlackBlockBuilder
                         ],
                     ],
                 ],
+                // Website URL (optional)
+                [
+                    'type' => 'input',
+                    'block_id' => 'url_website',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Website',
+                    ],
+                    'element' => [
+                        'type' => 'url_text_input',
+                        'action_id' => 'url_website',
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'https://www.example.com',
+                        ],
+                    ],
+                ],
                 // Fulfillment types (checkboxes multi-select)
                 [
                     'type' => 'input',
@@ -742,14 +828,14 @@ class SlackBlockBuilder
                         ],
                     ],
                 ],
-                // File upload (logo/menu)
+                // File upload (logo)
                 [
                     'type' => 'input',
                     'block_id' => 'file',
                     'optional' => true,
                     'label' => [
                         'type' => 'plain_text',
-                        'text' => 'Logo ou menu (optionnel)',
+                        'text' => 'Logo',
                     ],
                     'element' => [
                         'type' => 'file_input',

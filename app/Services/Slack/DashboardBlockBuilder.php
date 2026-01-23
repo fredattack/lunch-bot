@@ -62,7 +62,7 @@ class DashboardBlockBuilder
 
     private function headerBlocks(DashboardContext $context): array
     {
-        $dateLabel = $this->formatDateLabel($context->date, $context->isToday);
+        $dateLabel = $this->formatDateLabel($context->date, $context->isToday, $context->locale);
         $statusLabel = $this->sessionStatusLabel($context);
 
         $headerText = $context->state === DashboardState::History
@@ -338,14 +338,29 @@ class DashboardBlockBuilder
         }
 
         if ($context->canCreateProposal()) {
-            $elements = [
-                $this->button(
-                    'Commander ici',
-                    SlackAction::DashboardJoinProposal->value,
-                    (string) $proposal->id,
-                    'primary'
-                ),
-            ];
+            $userOrderInProposal = $proposal->orders->first(
+                fn ($order) => $order->provider_user_id === $context->userId
+            );
+
+            if ($userOrderInProposal) {
+                $elements = [
+                    $this->button(
+                        'Voir ma commande',
+                        SlackAction::OrderOpenEdit->value,
+                        (string) $userOrderInProposal->id,
+                        'primary'
+                    ),
+                ];
+            } else {
+                $elements = [
+                    $this->button(
+                        'Commander ici',
+                        SlackAction::DashboardJoinProposal->value,
+                        (string) $proposal->id,
+                        'primary'
+                    ),
+                ];
+            }
 
             $hasResponsible = $proposal->runner_user_id !== null || $proposal->orderer_user_id !== null;
             if (! $hasResponsible) {
@@ -409,11 +424,18 @@ class DashboardBlockBuilder
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Restaurant';
         $fulfillmentLabel = $proposal->fulfillment_type === FulfillmentType::Delivery ? 'Livraison' : 'Sur place';
-        $priceText = number_format((float) $order->price_estimated, 2).' EUR';
+        $priceText = $order->price_estimated !== null
+            ? number_format((float) $order->price_estimated, 2).' EUR'
+            : '-';
 
         $description = strlen($order->description) > 60
             ? substr($order->description, 0, 57).'...'
             : $order->description;
+
+        $orderText = "*Ma commande*\n{$vendorName} ({$fulfillmentLabel})\n_{$description}_";
+        if ($priceText !== '-') {
+            $orderText .= " - {$priceText}";
+        }
 
         $blocks = [
             [
@@ -421,7 +443,7 @@ class DashboardBlockBuilder
                 'block_id' => 'my_order',
                 'text' => [
                     'type' => 'mrkdwn',
-                    'text' => "*Ma commande*\n{$vendorName} ({$fulfillmentLabel})\n_{$description}_ - {$priceText}",
+                    'text' => $orderText,
                 ],
             ],
         ];
@@ -528,17 +550,24 @@ class DashboardBlockBuilder
         }
 
         $vendorName = $proposal->vendor?->name ?? 'Restaurant';
-        $price = number_format((float) $order->price_estimated, 2).' EUR';
+        $price = $order->price_estimated !== null
+            ? number_format((float) $order->price_estimated, 2).' EUR'
+            : '';
         $description = strlen($order->description) > 40
             ? substr($order->description, 0, 37).'...'
             : $order->description;
+
+        $text = "{$vendorName} : _{$description}_";
+        if ($price !== '') {
+            $text .= " ({$price})";
+        }
 
         return [
             'type' => 'context',
             'elements' => [
                 [
                     'type' => 'mrkdwn',
-                    'text' => "{$vendorName} : _{$description}_ ({$price})",
+                    'text' => $text,
                 ],
             ],
         ];
@@ -600,13 +629,9 @@ class DashboardBlockBuilder
         };
     }
 
-    private function formatDateLabel(CarbonInterface $date, bool $isToday): string
+    private function formatDateLabel(CarbonInterface $date, bool $isToday, string $locale = 'en'): string
     {
-        if ($isToday) {
-            return $date->translatedFormat('D. d/m');
-        }
-
-        return $date->translatedFormat('D. d/m');
+        return $date->locale($locale)->translatedFormat('D. d/m');
     }
 
     private function button(string $text, string $actionId, string $value, ?string $style = null): array

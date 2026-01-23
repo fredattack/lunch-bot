@@ -35,7 +35,7 @@ class SlackMessenger
         }
     }
 
-    public function postOrderCreatedMessage(VendorProposal $proposal, string $createdByUserId): void
+    public function postOrderCreatedMessage(VendorProposal $proposal, string $createdByUserId, bool $hideOtherVendorButton = false): void
     {
         $proposal->loadMissing(['vendor', 'lunchSession']);
 
@@ -53,6 +53,25 @@ class SlackMessenger
             $messageText .= "\n\n:memo: _{$proposal->note}_";
         }
 
+        $actionElements = [
+            [
+                'type' => 'button',
+                'text' => ['type' => 'plain_text', 'text' => 'Commander'],
+                'action_id' => SlackAction::OpenOrderForProposal->value,
+                'value' => (string) $proposal->id,
+                'style' => 'primary',
+            ],
+        ];
+
+        if (! $hideOtherVendorButton) {
+            $actionElements[] = [
+                'type' => 'button',
+                'text' => ['type' => 'plain_text', 'text' => 'Autre enseigne'],
+                'action_id' => SlackAction::OpenLunchDashboard->value,
+                'value' => $date,
+            ];
+        }
+
         $blocks = [
             [
                 'type' => 'section',
@@ -63,21 +82,7 @@ class SlackMessenger
             ],
             [
                 'type' => 'actions',
-                'elements' => [
-                    [
-                        'type' => 'button',
-                        'text' => ['type' => 'plain_text', 'text' => 'Commander'],
-                        'action_id' => SlackAction::OpenOrderForProposal->value,
-                        'value' => (string) $proposal->id,
-                        'style' => 'primary',
-                    ],
-                    [
-                        'type' => 'button',
-                        'text' => ['type' => 'plain_text', 'text' => 'Autre enseigne'],
-                        'action_id' => SlackAction::OpenLunchDashboard->value,
-                        'value' => $date,
-                    ],
-                ],
+                'elements' => $actionElements,
             ],
         ];
 

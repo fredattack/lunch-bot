@@ -81,6 +81,13 @@ class SlackService
         return $response['user'] ?? null;
     }
 
+    public function teamInfo(): ?array
+    {
+        $response = $this->api('team.info', []);
+
+        return $response['team'] ?? null;
+    }
+
     public function isAdmin(string $userId): bool
     {
         $adminIds = config('slack.admin_user_ids', []);

@@ -60,12 +60,14 @@ class SlackInteractionHandlerTest extends TestCase
         $this->blocks = Mockery::mock(SlackBlockBuilder::class);
         $this->dashboardBlocks = Mockery::mock(DashboardBlockBuilder::class);
 
+        $this->slack->shouldReceive('teamInfo')->andReturn(['locale' => 'en']);
+
         $this->handler = new SlackInteractionHandler(
             $this->slack,
             $this->messenger,
             $this->blocks,
             $this->dashboardBlocks,
-            new DashboardStateResolver,
+            new DashboardStateResolver($this->slack),
             app(CloseLunchSession::class),
             app(CreateLunchSession::class),
             app(ProposeVendor::class),
@@ -855,7 +857,7 @@ class SlackInteractionHandlerTest extends TestCase
 
         $this->messenger->shouldReceive('postOrderCreatedMessage')
             ->once()
-            ->with(Mockery::on(fn ($p) => $p->id === $proposal->id), 'U_CREATOR');
+            ->with(Mockery::on(fn ($p) => $p->id === $proposal->id), 'U_CREATOR', false);
 
         $this->messenger->shouldReceive('postEphemeral')
             ->once()

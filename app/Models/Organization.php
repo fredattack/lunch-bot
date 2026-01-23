@@ -16,6 +16,7 @@ class Organization extends Model
         'provider',
         'provider_team_id',
         'name',
+        'locale',
         'settings',
     ];
 

@@ -8,8 +8,10 @@ use App\Models\LunchSession;
 use App\Models\Order;
 use App\Models\VendorProposal;
 use App\Services\Slack\DashboardStateResolver;
+use App\Services\Slack\SlackService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 use Tests\TestCase;
 
 class DashboardStateResolverTest extends TestCase
@@ -23,7 +25,10 @@ class DashboardStateResolverTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->resolver = new DashboardStateResolver;
+
+        $slackService = Mockery::mock(SlackService::class);
+        $slackService->shouldReceive('teamInfo')->andReturn(['locale' => 'en']);
+        $this->resolver = new DashboardStateResolver($slackService);
     }
 
     public function test_s1_no_proposal_when_session_has_no_proposals(): void

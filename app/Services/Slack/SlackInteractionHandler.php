@@ -247,7 +247,7 @@ class SlackInteractionHandler
                 return;
 
             case SlackAction::ProposalOpenRecap->value:
-                $proposal = VendorProposal::with('lunchSession')->find($value);
+                $proposal = VendorProposal::with(['lunchSession', 'orders', 'vendor'])->find($value);
                 if (! $proposal) {
                     return;
                 }
@@ -257,7 +257,14 @@ class SlackInteractionHandler
 
                     return;
                 }
-                $this->messenger->postSummary($proposal);
+                $orders = $proposal->orders;
+                $estimated = $orders->sum('price_estimated');
+                $final = $orders->sum(fn (Order $o) => $o->price_final ?? $o->price_estimated);
+                $view = $this->blocks->recapModal($proposal, $orders->all(), [
+                    'estimated' => number_format((float) $estimated, 2),
+                    'final' => number_format((float) $final, 2),
+                ]);
+                $this->messenger->pushModal($triggerId, $view);
 
                 return;
 
@@ -642,6 +649,7 @@ class SlackInteractionHandler
 
         $state = $payload['view']['state']['values'] ?? [];
         $name = $this->stateValue($state, 'name', 'name');
+        $urlWebsite = $this->stateValue($state, 'url_website', 'url_website');
         $fulfillmentTypes = $this->stateCheckboxValues($state, 'fulfillment_types', 'fulfillment_types');
         $allowIndividualOrder = $this->stateCheckboxHasValue($state, 'allow_individual', 'allow_individual_order', 'allow_individual');
         $deadlineTime = $this->stateValue($state, 'deadline', 'deadline_time') ?: '11:30';
@@ -661,6 +669,7 @@ class SlackInteractionHandler
             $session,
             [
                 'name' => $name,
+                'url_website' => $urlWebsite ?: null,
                 'fulfillment_types' => $fulfillmentTypes,
                 'allow_individual_order' => $allowIndividualOrder,
             ],
@@ -798,7 +807,13 @@ class SlackInteractionHandler
         }
 
         if ($isFirstOrderForProposal && ! $existingOrder) {
-            $this->messenger->postOrderCreatedMessage($proposal, $userId);
+            $hasOtherOrderInSession = Order::query()
+                ->whereHas('proposal', fn ($q) => $q->where('lunch_session_id', $proposal->lunch_session_id))
+                ->where('provider_user_id', $userId)
+                ->where('vendor_proposal_id', '!=', $proposal->id)
+                ->exists();
+
+            $this->messenger->postOrderCreatedMessage($proposal, $userId, $hasOtherOrderInSession);
         }
 
         $this->postOptionalFeedback($payload, $userId, 'Commande enregistree.');
@@ -936,9 +951,12 @@ class SlackInteractionHandler
             return $this->viewErrorResponse(['description' => 'Description requise.']);
         }
 
-        $priceEstimated = $this->parsePrice($priceEstimatedRaw);
-        if ($priceEstimated === null) {
-            return $this->viewErrorResponse(['price_estimated' => 'Prix estime invalide.']);
+        $priceEstimated = null;
+        if ($priceEstimatedRaw !== null && $priceEstimatedRaw !== '') {
+            $priceEstimated = $this->parsePrice($priceEstimatedRaw);
+            if ($priceEstimated === null) {
+                return $this->viewErrorResponse(['price_estimated' => 'Prix estime invalide.']);
+            }
         }
 
         $data = [

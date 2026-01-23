@@ -12,8 +12,10 @@ use App\Models\Vendor;
 use App\Models\VendorProposal;
 use App\Services\Slack\DashboardBlockBuilder;
 use App\Services\Slack\DashboardStateResolver;
+use App\Services\Slack\SlackService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 use Tests\TestCase;
 
 class DashboardBlockBuilderTest extends TestCase
@@ -30,7 +32,10 @@ class DashboardBlockBuilderTest extends TestCase
     {
         parent::setUp();
         $this->builder = new DashboardBlockBuilder;
-        $this->resolver = new DashboardStateResolver;
+
+        $slackService = Mockery::mock(SlackService::class);
+        $slackService->shouldReceive('teamInfo')->andReturn(['locale' => 'en']);
+        $this->resolver = new DashboardStateResolver($slackService);
     }
 
     public function test_s1_modal_shows_start_actions(): void

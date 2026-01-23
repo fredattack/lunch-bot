@@ -24,6 +24,7 @@ final readonly class DashboardContext
         public bool $isToday,
         public bool $isAdmin,
         public string $workspaceName,
+        public string $locale,
         public Collection $proposals,
         public Collection $openProposals,
         public Collection $myProposalsInCharge,

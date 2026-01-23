@@ -6,6 +6,7 @@ use App\Enums\DashboardState;
 use App\Enums\ProposalStatus;
 use App\Models\LunchSession;
 use App\Models\Order;
+use App\Models\Organization;
 use App\Models\VendorProposal;
 use App\Services\Slack\Data\DashboardContext;
 use Carbon\Carbon;
@@ -13,6 +14,10 @@ use Illuminate\Support\Collection;
 
 class DashboardStateResolver
 {
+    public function __construct(
+        private readonly SlackService $slack
+    ) {}
+
     public function resolve(LunchSession $session, string $userId, bool $isAdmin = false): DashboardContext
     {
         $timezone = config('lunch.timezone', 'Europe/Paris');
@@ -34,6 +39,7 @@ class DashboardStateResolver
         );
 
         $workspaceName = $session->organization?->name ?? 'Workspace';
+        $locale = $this->resolveLocale($session->organization);
 
         return new DashboardContext(
             state: $state,
@@ -43,6 +49,7 @@ class DashboardStateResolver
             isToday: $isToday,
             isAdmin: $isAdmin,
             workspaceName: $workspaceName,
+            locale: $locale,
             proposals: $proposals,
             openProposals: $openProposals,
             myProposalsInCharge: $myProposalsInCharge,
@@ -149,5 +156,23 @@ class DashboardStateResolver
         }
 
         return DashboardState::AllClosed;
+    }
+
+    private function resolveLocale(?Organization $organization): string
+    {
+        if (! $organization) {
+            return 'en';
+        }
+
+        if ($organization->locale) {
+            return $organization->locale;
+        }
+
+        $teamInfo = $this->slack->teamInfo();
+        $locale = $teamInfo['locale'] ?? 'en';
+
+        $organization->update(['locale' => $locale]);
+
+        return $locale;
     }
 }
