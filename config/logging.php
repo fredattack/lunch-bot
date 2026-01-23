@@ -66,6 +66,7 @@ return [
             'up',
             'health',
             'livewire*',
+            'log-viewer*',
         ],
         'excluded_route_names' => [
             'sanctum.csrf-cookie',
