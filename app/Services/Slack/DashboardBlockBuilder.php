@@ -88,7 +88,7 @@ class DashboardBlockBuilder
                         'action_id' => SlackAction::DevResetDatabase->value,
                         'text' => [
                             'type' => 'plain_text',
-                            'text' => 'Reset DB (fresh + seed)',
+                            'text' => 'Reset DB',
                         ],
                         'style' => 'danger',
                         'confirm' => [
@@ -96,6 +96,14 @@ class DashboardBlockBuilder
                             'text' => ['type' => 'plain_text', 'text' => 'Cette action va supprimer toutes les donnees et reinitialiser la base.'],
                             'confirm' => ['type' => 'plain_text', 'text' => 'Reset'],
                             'deny' => ['type' => 'plain_text', 'text' => 'Annuler'],
+                        ],
+                    ],
+                    [
+                        'type' => 'button',
+                        'action_id' => SlackAction::DevExportVendors->value,
+                        'text' => [
+                            'type' => 'plain_text',
+                            'text' => 'Export Vendors JSON',
                         ],
                     ],
                 ],

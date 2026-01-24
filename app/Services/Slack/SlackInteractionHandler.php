@@ -559,6 +559,36 @@ class SlackInteractionHandler
 
                 return;
 
+            case SlackAction::DevExportVendors->value:
+                if ($userId !== 'U08E9Q2KJGY') {
+                    return;
+                }
+                $vendors = Vendor::with('media')->get()->map(function (Vendor $vendor) {
+                    return [
+                        'id' => $vendor->id,
+                        'name' => $vendor->name,
+                        'cuisine_type' => $vendor->cuisine_type,
+                        'fulfillment_types' => $vendor->fulfillment_types,
+                        'allow_individual_order' => $vendor->allow_individual_order,
+                        'url_website' => $vendor->url_website,
+                        'url_menu' => $vendor->url_menu,
+                        'notes' => $vendor->notes,
+                        'active' => $vendor->active,
+                        'media' => $vendor->media->map(fn ($m) => [
+                            'collection' => $m->collection_name,
+                            'file_name' => $m->file_name,
+                            'mime_type' => $m->mime_type,
+                            'url' => $m->getUrl(),
+                        ])->toArray(),
+                    ];
+                })->toArray();
+
+                $json = json_encode($vendors, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $view = $this->blocks->vendorExportModal($json);
+                $this->messenger->pushModal($triggerId, $view);
+
+                return;
+
             default:
                 return;
         }

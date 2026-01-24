@@ -53,6 +53,7 @@ enum SlackAction: string
 
     // Dev actions
     case DevResetDatabase = 'dev.reset_database';
+    case DevExportVendors = 'dev.export_vendors';
 
     // Channel message navigation buttons (post-order creation)
     case OpenOrderForProposal = 'open_order_for_proposal';

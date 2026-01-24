@@ -110,6 +110,46 @@ class SlackBlockBuilder
         ];
     }
 
+    public function vendorExportModal(string $jsonData): array
+    {
+        $chunks = str_split($jsonData, 2900);
+
+        $blocks = [
+            [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => '*Export Vendors JSON*\nCopiez le contenu ci-dessous :',
+                ],
+            ],
+            ['type' => 'divider'],
+        ];
+
+        foreach ($chunks as $index => $chunk) {
+            $blocks[] = [
+                'type' => 'section',
+                'block_id' => "json_chunk_{$index}",
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => "```{$chunk}```",
+                ],
+            ];
+        }
+
+        return [
+            'type' => 'modal',
+            'title' => [
+                'type' => 'plain_text',
+                'text' => 'Export Vendors',
+            ],
+            'close' => [
+                'type' => 'plain_text',
+                'text' => 'Fermer',
+            ],
+            'blocks' => $blocks,
+        ];
+    }
+
     public function recapModal(VendorProposal $proposal, array $orders, array $totals): array
     {
         $vendor = $proposal->vendor;
