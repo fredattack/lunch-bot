@@ -150,6 +150,81 @@ class SlackBlockBuilder
         ];
     }
 
+    /**
+     * @param  array<Vendor>  $vendors
+     */
+    public function vendorsListModal(LunchSession $session, array $vendors, string $searchQuery = ''): array
+    {
+        $blocks = [
+            [
+                'type' => 'input',
+                'block_id' => 'search',
+                'dispatch_action' => true,
+                'element' => [
+                    'type' => 'plain_text_input',
+                    'action_id' => SlackAction::VendorsListSearch->value,
+                    'placeholder' => ['type' => 'plain_text', 'text' => 'Rechercher un restaurant...'],
+                    'initial_value' => $searchQuery,
+                ],
+                'label' => ['type' => 'plain_text', 'text' => 'Recherche'],
+                'optional' => true,
+            ],
+            ['type' => 'divider'],
+        ];
+
+        if (empty($vendors)) {
+            $blocks[] = [
+                'type' => 'section',
+                'text' => ['type' => 'mrkdwn', 'text' => '_Aucun restaurant trouve._'],
+            ];
+        } else {
+            foreach ($vendors as $vendor) {
+                $blocks = array_merge($blocks, $this->vendorListItem($vendor));
+            }
+        }
+
+        return [
+            'type' => 'modal',
+            'callback_id' => 'vendors_list',
+            'title' => ['type' => 'plain_text', 'text' => 'Restaurants'],
+            'close' => ['type' => 'plain_text', 'text' => 'Fermer'],
+            'private_metadata' => json_encode(['lunch_session_id' => $session->id], JSON_THROW_ON_ERROR),
+            'blocks' => $blocks,
+        ];
+    }
+
+    private function vendorListItem(Vendor $vendor): array
+    {
+        $logoUrl = $vendor->getFirstMediaUrl('logo');
+        $blocks = [];
+
+        if ($logoUrl) {
+            $blocks[] = [
+                'type' => 'context',
+                'elements' => [
+                    ['type' => 'image', 'image_url' => $logoUrl, 'alt_text' => $vendor->name],
+                ],
+            ];
+        }
+
+        $blocks[] = [
+            'type' => 'section',
+            'block_id' => "vendor_{$vendor->id}",
+            'text' => [
+                'type' => 'mrkdwn',
+                'text' => "*{$vendor->name}*",
+            ],
+            'accessory' => [
+                'type' => 'button',
+                'action_id' => SlackAction::VendorsListEdit->value,
+                'value' => (string) $vendor->id,
+                'text' => ['type' => 'plain_text', 'text' => 'Modifier'],
+            ],
+        ];
+
+        return $blocks;
+    }
+
     public function recapModal(VendorProposal $proposal, array $orders, array $totals): array
     {
         $vendor = $proposal->vendor;

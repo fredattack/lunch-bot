@@ -272,6 +272,11 @@ class SlackMessenger
         $this->slack->pushModal($triggerId, $view);
     }
 
+    public function updateModal(string $viewId, array $view): void
+    {
+        $this->slack->updateModal($viewId, $view);
+    }
+
     public function isAdmin(string $userId): bool
     {
         return $this->slack->isAdmin($userId);

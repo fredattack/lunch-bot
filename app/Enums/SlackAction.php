@@ -55,6 +55,11 @@ enum SlackAction: string
     case DevResetDatabase = 'dev.reset_database';
     case DevExportVendors = 'dev.export_vendors';
 
+    // Vendor list actions
+    case DashboardVendorsList = 'dashboard.vendors_list';
+    case VendorsListSearch = 'vendors_list.search';
+    case VendorsListEdit = 'vendors_list.edit';
+
     // Channel message navigation buttons (post-order creation)
     case OpenOrderForProposal = 'open_order_for_proposal';
     case OpenLunchDashboard = 'open_lunch_dashboard';

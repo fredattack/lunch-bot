@@ -49,6 +49,7 @@ class DashboardBlockBuilder
     private function buildBlocks(DashboardContext $context): array
     {
         $blocks = $this->headerBlocks($context);
+        $blocks = array_merge($blocks, $this->quickActionsBlocks($context));
 
         $blocks = array_merge($blocks, match ($context->state) {
             DashboardState::NoProposal => $this->blocksForS1($context),
@@ -64,6 +65,24 @@ class DashboardBlockBuilder
         }
 
         return $blocks;
+    }
+
+    private function quickActionsBlocks(DashboardContext $context): array
+    {
+        return [
+            [
+                'type' => 'actions',
+                'block_id' => 'quick_actions',
+                'elements' => [
+                    $this->button(
+                        'Voir les restaurants',
+                        SlackAction::DashboardVendorsList->value,
+                        (string) $context->session->id
+                    ),
+                ],
+            ],
+            ['type' => 'divider'],
+        ];
     }
 
     private function devToolsBlocks(): array

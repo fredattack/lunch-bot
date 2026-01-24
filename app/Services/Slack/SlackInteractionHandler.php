@@ -589,6 +589,55 @@ class SlackInteractionHandler
 
                 return;
 
+            case SlackAction::DashboardVendorsList->value:
+                $session = LunchSession::find($value);
+                if (! $session) {
+                    return;
+                }
+                $vendors = Vendor::query()
+                    ->where('organization_id', $session->organization_id)
+                    ->where('active', true)
+                    ->orderBy('name')
+                    ->with('media')
+                    ->get()
+                    ->all();
+                $view = $this->blocks->vendorsListModal($session, $vendors);
+                $this->messenger->pushModal($triggerId, $view);
+
+                return;
+
+            case SlackAction::VendorsListSearch->value:
+                $state = $payload['view']['state']['values'] ?? [];
+                $searchQuery = $this->stateValue($state, 'search', SlackAction::VendorsListSearch->value) ?? '';
+                $metadata = $this->decodeMetadata($payload['view']['private_metadata'] ?? '{}');
+                $session = LunchSession::find($metadata['lunch_session_id'] ?? null);
+                if (! $session) {
+                    return;
+                }
+                $query = Vendor::query()
+                    ->where('organization_id', $session->organization_id)
+                    ->where('active', true)
+                    ->with('media');
+                if ($searchQuery !== '') {
+                    $query->where('name', 'like', "%{$searchQuery}%");
+                }
+                $vendors = $query->orderBy('name')->get()->all();
+                $view = $this->blocks->vendorsListModal($session, $vendors, $searchQuery);
+                $this->messenger->updateModal($payload['view']['id'], $view);
+
+                return;
+
+            case SlackAction::VendorsListEdit->value:
+                $vendor = Vendor::find($value);
+                if (! $vendor) {
+                    return;
+                }
+                $metadata = $this->decodeMetadata($payload['view']['private_metadata'] ?? '{}');
+                $view = $this->blocks->editVendorModal($vendor, $metadata);
+                $this->messenger->pushModal($triggerId, $view);
+
+                return;
+
             default:
                 return;
         }
