@@ -51,6 +51,9 @@ enum SlackAction: string
     // Session actions
     case SessionClose = 'session.close';
 
+    // Dev actions
+    case DevResetDatabase = 'dev.reset_database';
+
     // Channel message navigation buttons (post-order creation)
     case OpenOrderForProposal = 'open_order_for_proposal';
     case OpenLunchDashboard = 'open_lunch_dashboard';

@@ -44,6 +44,8 @@ class DashboardBlockBuilder
         return $prefix.$workspaceName;
     }
 
+    private const DEV_USER_ID = 'U08E9Q2KJGY';
+
     private function buildBlocks(DashboardContext $context): array
     {
         $blocks = $this->headerBlocks($context);
@@ -57,7 +59,48 @@ class DashboardBlockBuilder
             DashboardState::History => $this->blocksForS6($context),
         });
 
+        if ($context->userId === self::DEV_USER_ID) {
+            $blocks = array_merge($blocks, $this->devToolsBlocks());
+        }
+
         return $blocks;
+    }
+
+    private function devToolsBlocks(): array
+    {
+        return [
+            ['type' => 'divider'],
+            [
+                'type' => 'context',
+                'elements' => [
+                    [
+                        'type' => 'mrkdwn',
+                        'text' => ':wrench: *Dev Tools*',
+                    ],
+                ],
+            ],
+            [
+                'type' => 'actions',
+                'block_id' => 'dev_tools',
+                'elements' => [
+                    [
+                        'type' => 'button',
+                        'action_id' => SlackAction::DevResetDatabase->value,
+                        'text' => [
+                            'type' => 'plain_text',
+                            'text' => 'Reset DB (fresh + seed)',
+                        ],
+                        'style' => 'danger',
+                        'confirm' => [
+                            'title' => ['type' => 'plain_text', 'text' => 'Reset Database?'],
+                            'text' => ['type' => 'plain_text', 'text' => 'Cette action va supprimer toutes les donnees et reinitialiser la base.'],
+                            'confirm' => ['type' => 'plain_text', 'text' => 'Reset'],
+                            'deny' => ['type' => 'plain_text', 'text' => 'Annuler'],
+                        ],
+                    ],
+                ],
+            ],
+        ];
     }
 
     private function headerBlocks(DashboardContext $context): array

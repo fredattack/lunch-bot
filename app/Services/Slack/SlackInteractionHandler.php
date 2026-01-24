@@ -23,6 +23,7 @@ use App\Models\Vendor;
 use App\Models\VendorProposal;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -548,6 +549,16 @@ class SlackInteractionHandler
                 $this->messenger->postClosureSummary($session);
 
                 return;
+
+            case SlackAction::DevResetDatabase->value:
+                if ($userId !== 'U08E9Q2KJGY') {
+                    return;
+                }
+                Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+                $this->messenger->postEphemeral($channelId, $userId, 'Base de donnees reinitialisee avec succes.');
+
+                return;
+
             default:
                 return;
         }
