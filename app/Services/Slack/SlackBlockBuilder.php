@@ -1207,6 +1207,8 @@ class SlackBlockBuilder
 
     private function vendorBlocks(?Vendor $vendor = null): array
     {
+        $fulfillmentTypes = $vendor?->fulfillment_types ?? ['pickup'];
+
         return [
             [
                 'type' => 'input',
@@ -1219,6 +1221,34 @@ class SlackBlockBuilder
                     'type' => 'plain_text_input',
                     'action_id' => 'name',
                     'initial_value' => $vendor?->name ?? '',
+                ],
+            ],
+            [
+                'type' => 'input',
+                'block_id' => 'cuisine_type',
+                'optional' => true,
+                'label' => [
+                    'type' => 'plain_text',
+                    'text' => 'Type de cuisine',
+                ],
+                'element' => [
+                    'type' => 'plain_text_input',
+                    'action_id' => 'cuisine_type',
+                    'initial_value' => $vendor?->cuisine_type ?? '',
+                ],
+            ],
+            [
+                'type' => 'input',
+                'block_id' => 'url_website',
+                'optional' => true,
+                'label' => [
+                    'type' => 'plain_text',
+                    'text' => 'Site web',
+                ],
+                'element' => [
+                    'type' => 'url_text_input',
+                    'action_id' => 'url_website',
+                    'initial_value' => $vendor?->url_website ?? '',
                 ],
             ],
             [
@@ -1237,6 +1267,58 @@ class SlackBlockBuilder
             ],
             [
                 'type' => 'input',
+                'block_id' => 'fulfillment_types',
+                'label' => [
+                    'type' => 'plain_text',
+                    'text' => 'Types disponibles',
+                ],
+                'element' => [
+                    'type' => 'checkboxes',
+                    'action_id' => 'fulfillment_types',
+                    'initial_options' => $this->fulfillmentInitialOptions($fulfillmentTypes),
+                    'options' => [
+                        [
+                            'text' => ['type' => 'plain_text', 'text' => 'A emporter'],
+                            'value' => FulfillmentType::Pickup->value,
+                        ],
+                        [
+                            'text' => ['type' => 'plain_text', 'text' => 'Livraison'],
+                            'value' => FulfillmentType::Delivery->value,
+                        ],
+                        [
+                            'text' => ['type' => 'plain_text', 'text' => 'Sur place'],
+                            'value' => FulfillmentType::OnSite->value,
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'input',
+                'block_id' => 'allow_individual',
+                'optional' => true,
+                'label' => [
+                    'type' => 'plain_text',
+                    'text' => 'Options',
+                ],
+                'element' => [
+                    'type' => 'checkboxes',
+                    'action_id' => 'allow_individual_order',
+                    'initial_options' => $vendor?->allow_individual_order ? [
+                        [
+                            'text' => ['type' => 'mrkdwn', 'text' => 'Autoriser les commandes individuelles'],
+                            'value' => 'allow_individual',
+                        ],
+                    ] : [],
+                    'options' => [
+                        [
+                            'text' => ['type' => 'mrkdwn', 'text' => 'Autoriser les commandes individuelles'],
+                            'value' => 'allow_individual',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'input',
                 'block_id' => 'notes',
                 'optional' => true,
                 'label' => [
@@ -1250,7 +1332,43 @@ class SlackBlockBuilder
                     'initial_value' => $vendor?->notes ?? '',
                 ],
             ],
+            [
+                'type' => 'input',
+                'block_id' => 'file',
+                'optional' => true,
+                'label' => [
+                    'type' => 'plain_text',
+                    'text' => 'Logo',
+                ],
+                'element' => [
+                    'type' => 'file_input',
+                    'action_id' => 'file_upload',
+                    'filetypes' => ['png', 'jpg', 'jpeg'],
+                    'max_files' => 1,
+                ],
+            ],
         ];
+    }
+
+    private function fulfillmentInitialOptions(array $types): array
+    {
+        $options = [];
+        $labels = [
+            FulfillmentType::Pickup->value => 'A emporter',
+            FulfillmentType::Delivery->value => 'Livraison',
+            FulfillmentType::OnSite->value => 'Sur place',
+        ];
+
+        foreach ($types as $type) {
+            if (isset($labels[$type])) {
+                $options[] = [
+                    'text' => ['type' => 'plain_text', 'text' => $labels[$type]],
+                    'value' => $type,
+                ];
+            }
+        }
+
+        return $options;
     }
 
     private function button(string $text, string $actionId, string $value, ?string $style = null): array

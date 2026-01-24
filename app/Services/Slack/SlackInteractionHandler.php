@@ -870,17 +870,30 @@ class SlackInteractionHandler
 
         $state = $payload['view']['state']['values'] ?? [];
         $name = $this->stateValue($state, 'name', 'name');
+        $cuisineType = $this->stateValue($state, 'cuisine_type', 'cuisine_type');
+        $urlWebsite = $this->stateValue($state, 'url_website', 'url_website');
         $urlMenu = $this->stateValue($state, 'url_menu', 'url_menu');
+        $fulfillmentTypes = $this->stateCheckboxValues($state, 'fulfillment_types', 'fulfillment_types');
+        $allowIndividualOrder = $this->stateCheckboxHasValue($state, 'allow_individual', 'allow_individual_order', 'allow_individual');
         $notes = $this->stateValue($state, 'notes', 'notes');
         $active = $this->stateValue($state, 'active', 'active');
+        $fileIds = $this->stateFileIds($state, 'file', 'file_upload');
 
         if (! $name) {
             return $this->viewErrorResponse(['name' => 'Nom requis.']);
         }
 
+        if (empty($fulfillmentTypes)) {
+            return $this->viewErrorResponse(['fulfillment_types' => 'Au moins un type requis.']);
+        }
+
         $data = [
             'name' => $name,
+            'cuisine_type' => $cuisineType ?: null,
+            'url_website' => $urlWebsite ?: null,
             'url_menu' => $urlMenu ?: null,
+            'fulfillment_types' => $fulfillmentTypes,
+            'allow_individual_order' => $allowIndividualOrder,
             'notes' => $notes ?: null,
         ];
 
@@ -889,6 +902,11 @@ class SlackInteractionHandler
         }
 
         $this->updateVendor->handle($vendor, $data);
+
+        if (! empty($fileIds)) {
+            $this->processFileUpload($vendor, $fileIds[0]);
+        }
+
         $this->postOptionalFeedback($payload, $userId, 'Enseigne mise a jour.');
 
         return response('', 200);
