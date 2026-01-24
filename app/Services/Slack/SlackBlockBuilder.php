@@ -220,6 +220,21 @@ class SlackBlockBuilder
                     ],
                 ],
                 [
+                    'type' => 'actions',
+                    'block_id' => 'new_restaurant_action',
+                    'elements' => [
+                        [
+                            'type' => 'button',
+                            'action_id' => SlackAction::DashboardCreateProposal->value,
+                            'value' => (string) $session->id,
+                            'text' => [
+                                'type' => 'plain_text',
+                                'text' => 'Nouveau restaurant',
+                            ],
+                        ],
+                    ],
+                ],
+                [
                     'type' => 'input',
                     'block_id' => 'fulfillment',
                     'label' => [
