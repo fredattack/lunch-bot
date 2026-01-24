@@ -735,6 +735,11 @@ class SlackInteractionHandler
     {
         $fileInfo = $this->slack->getFileInfo($fileId);
         if (! $fileInfo) {
+            Log::warning('Vendor file upload: failed to get file info', [
+                'vendor_id' => $vendor->id,
+                'file_id' => $fileId,
+            ]);
+
             return;
         }
 
@@ -743,19 +748,44 @@ class SlackInteractionHandler
         $filename = $fileInfo['name'] ?? 'file';
 
         if (! $urlPrivate) {
+            Log::warning('Vendor file upload: missing url_private', [
+                'vendor_id' => $vendor->id,
+                'file_id' => $fileId,
+                'file_info' => $fileInfo,
+            ]);
+
             return;
         }
 
         $tempPath = $this->slack->downloadFile($urlPrivate);
         if (! $tempPath) {
+            Log::warning('Vendor file upload: download failed', [
+                'vendor_id' => $vendor->id,
+                'file_id' => $fileId,
+                'url' => $urlPrivate,
+            ]);
+
             return;
         }
 
         $collection = str_starts_with($mimetype, 'image/') ? 'logo' : 'menu';
 
-        $vendor->addMedia($tempPath)
-            ->usingFileName($filename)
-            ->toMediaCollection($collection);
+        try {
+            $vendor->addMedia($tempPath)
+                ->usingFileName($filename)
+                ->toMediaCollection($collection);
+
+            Log::info('Vendor file upload: success', [
+                'vendor_id' => $vendor->id,
+                'collection' => $collection,
+                'filename' => $filename,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Vendor file upload: media library error', [
+                'vendor_id' => $vendor->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function handleVendorCreate(array $payload, string $userId): Response
