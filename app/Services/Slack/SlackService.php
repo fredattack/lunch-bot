@@ -168,10 +168,15 @@ class SlackService
         $data = $response->json();
 
         if (! ($data['ok'] ?? false)) {
-            Log::warning('Slack API error.', [
-                'method' => $method,
-                'error' => $data['error'] ?? 'unknown',
-            ]);
+            $error = $data['error'] ?? 'unknown';
+            $expectedErrors = ['user_not_found', 'channel_not_found', 'not_in_channel'];
+
+            if (! in_array($error, $expectedErrors, true)) {
+                Log::warning('Slack API error.', [
+                    'method' => $method,
+                    'error' => $error,
+                ]);
+            }
         }
 
         return $data ?? ['ok' => false];
