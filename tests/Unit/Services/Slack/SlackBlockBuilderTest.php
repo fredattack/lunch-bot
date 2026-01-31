@@ -47,7 +47,9 @@ class SlackBlockBuilderTest extends TestCase
 
         $this->assertEquals('modal', $modal['type']);
         $this->assertEquals(SlackAction::CallbackProposalManage->value, $modal['callback_id']);
-        $this->assertStringContainsString('Sushi Wasabi', $modal['blocks'][0]['text']['text']);
+        $headerContext = collect($modal['blocks'])->firstWhere('type', 'context');
+        $vendorNameElement = collect($headerContext['elements'])->firstWhere('type', 'mrkdwn');
+        $this->assertStringContainsString('Sushi Wasabi', $vendorNameElement['text']);
     }
 
     public function test_proposal_manage_modal_shows_runner_label_for_pickup(): void
@@ -59,7 +61,8 @@ class SlackBlockBuilderTest extends TestCase
 
         $modal = $this->builder->proposalManageModal($proposal, 'U_USER');
 
-        $this->assertStringContainsString('Runner', $modal['blocks'][0]['text']['text']);
+        $sectionBlock = collect($modal['blocks'])->firstWhere('type', 'section');
+        $this->assertStringContainsString('Runner', $sectionBlock['text']['text']);
     }
 
     public function test_proposal_manage_modal_shows_orderer_label_for_delivery(): void
@@ -71,7 +74,8 @@ class SlackBlockBuilderTest extends TestCase
 
         $modal = $this->builder->proposalManageModal($proposal, 'U_USER');
 
-        $this->assertStringContainsString('Orderer', $modal['blocks'][0]['text']['text']);
+        $sectionBlock = collect($modal['blocks'])->firstWhere('type', 'section');
+        $this->assertStringContainsString('Orderer', $sectionBlock['text']['text']);
     }
 
     public function test_proposal_manage_modal_shows_take_charge_button_when_no_responsible(): void
@@ -119,7 +123,7 @@ class SlackBlockBuilderTest extends TestCase
 
         $modal = $this->builder->proposalManageModal($proposal, 'U_USER');
 
-        $contextBlock = collect($modal['blocks'])->firstWhere('type', 'context');
+        $contextBlock = collect($modal['blocks'])->where('type', 'context')->last();
         $this->assertNotNull($contextBlock);
         $this->assertStringContainsString('responsable est deja assigne', $contextBlock['elements'][0]['text']);
     }
@@ -134,7 +138,7 @@ class SlackBlockBuilderTest extends TestCase
 
         $modal = $this->builder->proposalManageModal($proposal, 'U_USER');
 
-        $contextBlock = collect($modal['blocks'])->firstWhere('type', 'context');
+        $contextBlock = collect($modal['blocks'])->where('type', 'context')->last();
         $this->assertNotNull($contextBlock);
         $this->assertStringContainsString('deja en charge', $contextBlock['elements'][0]['text']);
     }

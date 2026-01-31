@@ -39,20 +39,35 @@ class SlackBlockBuilder
     public function proposalBlocks(VendorProposal $proposal, int $orderCount): array
     {
         $vendor = $proposal->vendor;
+        $logoUrl = $vendor->getFirstMediaUrl('logo');
         $menu = $vendor->url_menu ? "<{$vendor->url_menu}|Menu>" : 'Menu indisponible';
         $runner = $proposal->runner_user_id ? "<@{$proposal->runner_user_id}>" : '_non assigne_';
         $orderer = $proposal->orderer_user_id ? "<@{$proposal->orderer_user_id}>" : '_non assigne_';
         $type = $proposal->fulfillment_type === FulfillmentType::Delivery ? 'Delivery' : 'Pickup';
         $platform = $proposal->platform ? "Plateforme: {$proposal->platform}" : 'Plateforme: -';
 
-        return [
-            [
-                'type' => 'section',
-                'text' => [
-                    'type' => 'mrkdwn',
-                    'text' => "*{$vendor->name}* ({$menu})\nType: {$type}\n{$platform}\nRunner: {$runner}\nOrderer: {$orderer}",
-                ],
+        $blocks = [];
+
+        $headerElements = [];
+        if ($logoUrl) {
+            $headerElements[] = ['type' => 'image', 'image_url' => $logoUrl, 'alt_text' => $vendor->name];
+        }
+        $headerElements[] = ['type' => 'mrkdwn', 'text' => "*{$vendor->name}* ({$menu})"];
+
+        $blocks[] = [
+            'type' => 'context',
+            'elements' => $headerElements,
+        ];
+
+        $blocks[] = [
+            'type' => 'section',
+            'text' => [
+                'type' => 'mrkdwn',
+                'text' => "Type: {$type}\n{$platform}\nRunner: {$runner}\nOrderer: {$orderer}",
             ],
+        ];
+
+        return array_merge($blocks, [
             [
                 'type' => 'context',
                 'elements' => [
@@ -80,7 +95,7 @@ class SlackBlockBuilder
                     $this->button('Gerer enseigne', SlackAction::OpenManageEnseigneModal->value, (string) $proposal->id),
                 ],
             ],
-        ];
+        ]);
     }
 
     public function summaryBlocks(VendorProposal $proposal, array $orders, array $totals): array
@@ -196,29 +211,31 @@ class SlackBlockBuilder
     private function vendorListItem(Vendor $vendor): array
     {
         $logoUrl = $vendor->getFirstMediaUrl('logo');
-        $blocks = [];
 
+        $contextElements = [];
         if ($logoUrl) {
-            $blocks[] = [
-                'type' => 'context',
-                'elements' => [
-                    ['type' => 'image', 'image_url' => $logoUrl, 'alt_text' => $vendor->name],
-                ],
-            ];
+            $contextElements[] = ['type' => 'image', 'image_url' => $logoUrl, 'alt_text' => $vendor->name];
         }
+        $contextElements[] = ['type' => 'mrkdwn', 'text' => "*{$vendor->name}*"];
 
-        $blocks[] = [
-            'type' => 'section',
-            'block_id' => "vendor_{$vendor->id}",
-            'text' => [
-                'type' => 'mrkdwn',
-                'text' => "*{$vendor->name}*",
+        $blocks = [
+            [
+                'type' => 'context',
+                'elements' => $contextElements,
             ],
-            'accessory' => [
-                'type' => 'button',
-                'action_id' => SlackAction::VendorsListEdit->value,
-                'value' => (string) $vendor->id,
-                'text' => ['type' => 'plain_text', 'text' => 'Modifier'],
+            [
+                'type' => 'section',
+                'block_id' => "vendor_{$vendor->id}",
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => ' ',
+                ],
+                'accessory' => [
+                    'type' => 'button',
+                    'action_id' => SlackAction::VendorsListEdit->value,
+                    'value' => (string) $vendor->id,
+                    'text' => ['type' => 'plain_text', 'text' => 'Modifier'],
+                ],
             ],
         ];
 
@@ -229,14 +246,18 @@ class SlackBlockBuilder
     {
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Restaurant';
+        $logoUrl = $vendor?->getFirstMediaUrl('logo');
+
+        $headerElements = [];
+        if ($logoUrl) {
+            $headerElements[] = ['type' => 'image', 'image_url' => $logoUrl, 'alt_text' => $vendorName];
+        }
+        $headerElements[] = ['type' => 'mrkdwn', 'text' => "*Recapitulatif - {$vendorName}*"];
 
         $blocks = [
             [
-                'type' => 'header',
-                'text' => [
-                    'type' => 'plain_text',
-                    'text' => "Recapitulatif - {$vendorName}",
-                ],
+                'type' => 'context',
+                'elements' => $headerElements,
             ],
             [
                 'type' => 'divider',
@@ -701,6 +722,7 @@ class SlackBlockBuilder
     {
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Restaurant';
+        $logoUrl = $vendor?->getFirstMediaUrl('logo');
         $isPickup = $proposal->fulfillment_type === FulfillmentType::Pickup;
         $orderCount = $proposal->orders_count ?? $proposal->orders()->count();
 
@@ -708,12 +730,22 @@ class SlackBlockBuilder
         $roleLabel = $isPickup ? 'Runner' : 'Orderer';
         $responsibleText = $currentResponsible ? "<@{$currentResponsible}>" : '_Non assigne_';
 
+        $headerElements = [];
+        if ($logoUrl) {
+            $headerElements[] = ['type' => 'image', 'image_url' => $logoUrl, 'alt_text' => $vendorName];
+        }
+        $headerElements[] = ['type' => 'mrkdwn', 'text' => "*{$vendorName}*"];
+
         $blocks = [
+            [
+                'type' => 'context',
+                'elements' => $headerElements,
+            ],
             [
                 'type' => 'section',
                 'text' => [
                     'type' => 'mrkdwn',
-                    'text' => "*{$vendorName}*\n{$roleLabel} : {$responsibleText}\nCommandes : {$orderCount}",
+                    'text' => "{$roleLabel} : {$responsibleText}\nCommandes : {$orderCount}",
                 ],
             ],
         ];
@@ -1166,17 +1198,28 @@ class SlackBlockBuilder
     {
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Enseigne inconnue';
+        $logoUrl = $vendor?->getFirstMediaUrl('logo');
         $responsible = $proposal->runner_user_id
             ? "<@{$proposal->runner_user_id}>"
             : ($proposal->orderer_user_id ? "<@{$proposal->orderer_user_id}>" : '_non assigne_');
         $orderCount = $proposal->orders_count ?? $proposal->orders->count();
 
+        $headerElements = [];
+        if ($logoUrl) {
+            $headerElements[] = ['type' => 'image', 'image_url' => $logoUrl, 'alt_text' => $vendorName];
+        }
+        $headerElements[] = ['type' => 'mrkdwn', 'text' => "*{$vendorName}*"];
+
         $blocks = [
+            [
+                'type' => 'context',
+                'elements' => $headerElements,
+            ],
             [
                 'type' => 'section',
                 'text' => [
                     'type' => 'mrkdwn',
-                    'text' => "*{$vendorName}*\nResponsable: {$responsible} | Commandes: {$orderCount}",
+                    'text' => "Responsable: {$responsible} | Commandes: {$orderCount}",
                 ],
             ],
         ];
