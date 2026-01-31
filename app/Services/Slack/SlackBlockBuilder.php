@@ -39,7 +39,7 @@ class SlackBlockBuilder
     public function proposalBlocks(VendorProposal $proposal, int $orderCount): array
     {
         $vendor = $proposal->vendor;
-        $logoUrl = $vendor->getFirstMediaUrl('logo');
+        $logoUrl = $vendor->getLogoThumbUrl();
         $menu = $vendor->url_menu ? "<{$vendor->url_menu}|Menu>" : 'Menu indisponible';
         $runner = $proposal->runner_user_id ? "<@{$proposal->runner_user_id}>" : '_non assigne_';
         $orderer = $proposal->orderer_user_id ? "<@{$proposal->orderer_user_id}>" : '_non assigne_';
@@ -210,31 +210,15 @@ class SlackBlockBuilder
 
     private function vendorListItem(Vendor $vendor): array
     {
-        $logoUrl = $vendor->getFirstMediaUrl('logo');
-
-        $section = [
-            'type' => 'section',
-            'block_id' => "vendor_{$vendor->id}",
-            'text' => [
-                'type' => 'mrkdwn',
-                'text' => "*{$vendor->name}*",
-            ],
-        ];
-
-        if ($logoUrl) {
-            $section['accessory'] = [
-                'type' => 'image',
-                'image_url' => $logoUrl,
-                'alt_text' => $vendor->name,
-            ];
-        }
-
-        $blocks = [$section];
-
-        $blocks[] = [
-            'type' => 'actions',
-            'elements' => [
-                [
+        return [
+            [
+                'type' => 'section',
+                'block_id' => "vendor_{$vendor->id}",
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => "*{$vendor->name}*",
+                ],
+                'accessory' => [
                     'type' => 'button',
                     'action_id' => SlackAction::VendorsListEdit->value,
                     'value' => (string) $vendor->id,
@@ -242,15 +226,13 @@ class SlackBlockBuilder
                 ],
             ],
         ];
-
-        return $blocks;
     }
 
     public function recapModal(VendorProposal $proposal, array $orders, array $totals): array
     {
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Restaurant';
-        $logoUrl = $vendor?->getFirstMediaUrl('logo');
+        $logoUrl = $vendor?->getLogoThumbUrl();
 
         $headerElements = [];
         if ($logoUrl) {
@@ -726,7 +708,7 @@ class SlackBlockBuilder
     {
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Restaurant';
-        $logoUrl = $vendor?->getFirstMediaUrl('logo');
+        $logoUrl = $vendor?->getLogoThumbUrl();
         $isPickup = $proposal->fulfillment_type === FulfillmentType::Pickup;
         $orderCount = $proposal->orders_count ?? $proposal->orders()->count();
 
@@ -1202,7 +1184,7 @@ class SlackBlockBuilder
     {
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Enseigne inconnue';
-        $logoUrl = $vendor?->getFirstMediaUrl('logo');
+        $logoUrl = $vendor?->getLogoThumbUrl();
         $responsible = $proposal->runner_user_id
             ? "<@{$proposal->runner_user_id}>"
             : ($proposal->orderer_user_id ? "<@{$proposal->orderer_user_id}>" : '_non assigne_');

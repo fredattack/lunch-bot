@@ -6,8 +6,10 @@ use App\Models\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Vendor extends Model implements HasMedia
 {
@@ -48,5 +50,18 @@ class Vendor extends Model implements HasMedia
     {
         $this->addMediaCollection('logo')->singleFile();
         $this->addMediaCollection('menu')->singleFile();
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->fit(Fit::Crop, 64, 64)
+            ->nonQueued()
+            ->performOnCollections('logo');
+    }
+
+    public function getLogoThumbUrl(): ?string
+    {
+        return $this->getFirstMediaUrl('logo', 'thumb') ?: null;
     }
 }
