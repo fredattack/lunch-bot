@@ -62,6 +62,11 @@ class Vendor extends Model implements HasMedia
 
     public function getLogoThumbUrl(): ?string
     {
-        return $this->getFirstMediaUrl('logo', 'thumb') ?: null;
+        $thumbUrl = $this->getFirstMediaUrl('logo', 'thumb');
+        if ($thumbUrl) {
+            return $thumbUrl;
+        }
+
+        return $this->getFirstMediaUrl('logo') ?: null;
     }
 }

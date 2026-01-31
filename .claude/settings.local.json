@@ -12,7 +12,8 @@
       "Bash(git commit:*)",
       "mcp__laravel-boost__tinker",
       "mcp__laravel-boost__get-config",
-      "mcp__laravel-boost__database-query"
+      "mcp__laravel-boost__database-query",
+      "Bash(git push)"
     ]
   },
   "enableAllProjectMcpServers": true,
