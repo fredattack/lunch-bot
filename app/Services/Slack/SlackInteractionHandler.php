@@ -648,6 +648,12 @@ class SlackInteractionHandler
         $callbackId = $payload['view']['callback_id'] ?? '';
         $userId = $payload['user']['id'] ?? '';
 
+        Log::debug('View submission received', [
+            'callback_id' => $callbackId,
+            'user_id' => $userId,
+            'has_file_block' => isset($payload['view']['state']['values']['file']),
+        ]);
+
         try {
             return match ($callbackId) {
                 SlackAction::CallbackProposalCreate->value, 'proposal.create' => $this->handleProposalSubmission($payload, $userId),
@@ -856,9 +862,13 @@ class SlackInteractionHandler
 
     private function handleVendorUpdate(array $payload, string $userId): Response
     {
+        Log::debug('handleVendorUpdate called', ['user_id' => $userId]);
+
         $metadata = $this->decodeMetadata($payload['view']['private_metadata'] ?? '{}');
         $vendor = Vendor::find($metadata['vendor_id'] ?? null);
         if (! $vendor) {
+            Log::debug('handleVendorUpdate: vendor not found', ['metadata' => $metadata]);
+
             return response('', 200);
         }
 
