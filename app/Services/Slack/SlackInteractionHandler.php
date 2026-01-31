@@ -648,7 +648,7 @@ class SlackInteractionHandler
         $callbackId = $payload['view']['callback_id'] ?? '';
         $userId = $payload['user']['id'] ?? '';
 
-        Log::debug('View submission received', [
+        Log::info('View submission received', [
             'callback_id' => $callbackId,
             'user_id' => $userId,
             'has_file_block' => isset($payload['view']['state']['values']['file']),
@@ -862,12 +862,12 @@ class SlackInteractionHandler
 
     private function handleVendorUpdate(array $payload, string $userId): Response
     {
-        Log::debug('handleVendorUpdate called', ['user_id' => $userId]);
+        Log::info('handleVendorUpdate called', ['user_id' => $userId]);
 
         $metadata = $this->decodeMetadata($payload['view']['private_metadata'] ?? '{}');
         $vendor = Vendor::find($metadata['vendor_id'] ?? null);
         if (! $vendor) {
-            Log::debug('handleVendorUpdate: vendor not found', ['metadata' => $metadata]);
+            Log::info('handleVendorUpdate: vendor not found', ['metadata' => $metadata]);
 
             return response('', 200);
         }
@@ -889,7 +889,7 @@ class SlackInteractionHandler
         $active = $this->stateValue($state, 'active', 'active');
         $fileIds = $this->stateFileIds($state, 'file', 'file_upload');
 
-        Log::debug('Vendor update file state', [
+        Log::info('Vendor update file state', [
             'vendor_id' => $vendor->id,
             'file_block_raw' => $state['file'] ?? 'MISSING',
             'file_ids' => $fileIds,
