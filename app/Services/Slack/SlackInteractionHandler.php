@@ -879,6 +879,12 @@ class SlackInteractionHandler
         $active = $this->stateValue($state, 'active', 'active');
         $fileIds = $this->stateFileIds($state, 'file', 'file_upload');
 
+        Log::debug('Vendor update file state', [
+            'vendor_id' => $vendor->id,
+            'file_block_raw' => $state['file'] ?? 'MISSING',
+            'file_ids' => $fileIds,
+        ]);
+
         if (! $name) {
             return $this->viewErrorResponse(['name' => 'Nom requis.']);
         }

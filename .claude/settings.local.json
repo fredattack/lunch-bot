@@ -7,11 +7,13 @@
       "Bash(php artisan:*)",
       "Bash(make help:*)",
       "Bash(ls:*)",
-      "Bash(vendor/bin/pint:*)"
+      "Bash(vendor/bin/pint:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "laravel-boost"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
