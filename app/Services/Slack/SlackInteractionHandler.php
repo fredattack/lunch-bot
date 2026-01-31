@@ -751,7 +751,7 @@ class SlackInteractionHandler
         $deadlineTime = $this->stateValue($state, 'deadline', 'deadline_time') ?: '11:30';
         $note = $this->stateValue($state, 'note', 'note');
         $helpRequested = $this->stateCheckboxHasValue($state, 'help', 'help_requested', 'help_requested');
-        $fileIds = $this->stateFileIds($state, 'file', 'file_upload');
+        $files = $this->stateFiles($state, 'file', 'file_upload');
 
         if (! $name) {
             return $this->viewErrorResponse(['name' => 'Nom du restaurant requis.']);
@@ -775,8 +775,8 @@ class SlackInteractionHandler
             $helpRequested
         );
 
-        if (! empty($fileIds)) {
-            $this->processFileUpload($proposal->vendor, $fileIds[0]);
+        if (! empty($files)) {
+            $this->processFileUpload($proposal->vendor, $files[0]);
         }
 
         $proposal->load(['lunchSession', 'vendor']);
@@ -786,27 +786,16 @@ class SlackInteractionHandler
         return $this->viewUpdateResponse($orderModal);
     }
 
-    private function processFileUpload(Vendor $vendor, string $fileId): void
+    private function processFileUpload(Vendor $vendor, array $fileData): void
     {
-        $fileInfo = $this->slack->getFileInfo($fileId);
-        if (! $fileInfo) {
-            Log::warning('Vendor file upload: failed to get file info', [
-                'vendor_id' => $vendor->id,
-                'file_id' => $fileId,
-            ]);
-
-            return;
-        }
-
-        $urlPrivate = $fileInfo['url_private'] ?? null;
-        $mimetype = $fileInfo['mimetype'] ?? '';
-        $filename = $fileInfo['name'] ?? 'file';
+        $urlPrivate = $fileData['url_private'] ?? null;
+        $mimetype = $fileData['mimetype'] ?? '';
+        $filename = $fileData['name'] ?? 'file';
 
         if (! $urlPrivate) {
             Log::warning('Vendor file upload: missing url_private', [
                 'vendor_id' => $vendor->id,
-                'file_id' => $fileId,
-                'file_info' => $fileInfo,
+                'file_data' => $fileData,
             ]);
 
             return;
@@ -816,7 +805,6 @@ class SlackInteractionHandler
         if (! $tempPath) {
             Log::warning('Vendor file upload: download failed', [
                 'vendor_id' => $vendor->id,
-                'file_id' => $fileId,
                 'url' => $urlPrivate,
             ]);
 
@@ -887,13 +875,7 @@ class SlackInteractionHandler
         $allowIndividualOrder = $this->stateCheckboxHasValue($state, 'allow_individual', 'allow_individual_order', 'allow_individual');
         $notes = $this->stateValue($state, 'notes', 'notes');
         $active = $this->stateValue($state, 'active', 'active');
-        $fileIds = $this->stateFileIds($state, 'file', 'file_upload');
-
-        Log::info('Vendor update file state', [
-            'vendor_id' => $vendor->id,
-            'file_block_raw' => $state['file'] ?? 'MISSING',
-            'file_ids' => $fileIds,
-        ]);
+        $files = $this->stateFiles($state, 'file', 'file_upload');
 
         if (! $name) {
             return $this->viewErrorResponse(['name' => 'Nom requis.']);
@@ -919,8 +901,8 @@ class SlackInteractionHandler
 
         $this->updateVendor->handle($vendor, $data);
 
-        if (! empty($fileIds)) {
-            $this->processFileUpload($vendor, $fileIds[0]);
+        if (! empty($files)) {
+            $this->processFileUpload($vendor, $files[0]);
         }
 
         $this->postOptionalFeedback($payload, $userId, 'Enseigne mise a jour.');
@@ -1217,6 +1199,11 @@ class SlackInteractionHandler
         $files = Arr::get($state, "{$blockId}.{$actionId}.files", []);
 
         return array_map(fn ($file) => $file['id'] ?? '', $files);
+    }
+
+    private function stateFiles(array $state, string $blockId, string $actionId): array
+    {
+        return Arr::get($state, "{$blockId}.{$actionId}.files", []);
     }
 
     private function decodeMetadata(string $metadata): array
