@@ -55,7 +55,7 @@ class Vendor extends Model implements HasMedia
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')
-            ->fit(Fit::Crop, 64, 64)
+            ->fit(Fit::Contain, 128, 128)
             ->nonQueued()
             ->performOnCollections('logo');
     }
