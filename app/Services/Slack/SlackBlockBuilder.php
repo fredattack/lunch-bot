@@ -212,25 +212,29 @@ class SlackBlockBuilder
     {
         $logoUrl = $vendor->getFirstMediaUrl('logo');
 
-        $contextElements = [];
-        if ($logoUrl) {
-            $contextElements[] = ['type' => 'image', 'image_url' => $logoUrl, 'alt_text' => $vendor->name];
-        }
-        $contextElements[] = ['type' => 'mrkdwn', 'text' => "*{$vendor->name}*"];
-
-        $blocks = [
-            [
-                'type' => 'context',
-                'elements' => $contextElements,
+        $section = [
+            'type' => 'section',
+            'block_id' => "vendor_{$vendor->id}",
+            'text' => [
+                'type' => 'mrkdwn',
+                'text' => "*{$vendor->name}*",
             ],
-            [
-                'type' => 'section',
-                'block_id' => "vendor_{$vendor->id}",
-                'text' => [
-                    'type' => 'mrkdwn',
-                    'text' => ' ',
-                ],
-                'accessory' => [
+        ];
+
+        if ($logoUrl) {
+            $section['accessory'] = [
+                'type' => 'image',
+                'image_url' => $logoUrl,
+                'alt_text' => $vendor->name,
+            ];
+        }
+
+        $blocks = [$section];
+
+        $blocks[] = [
+            'type' => 'actions',
+            'elements' => [
+                [
                     'type' => 'button',
                     'action_id' => SlackAction::VendorsListEdit->value,
                     'value' => (string) $vendor->id,
