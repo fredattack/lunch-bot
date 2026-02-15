@@ -301,6 +301,10 @@ class SlackInteractionHandlerTest extends TestCase
             ->for($session)
             ->create();
 
+        $this->messenger->shouldReceive('isAdmin')
+            ->with('U_USER')
+            ->andReturn(false);
+
         $this->messenger->shouldReceive('postEphemeral')
             ->once()
             ->with($session->provider_channel_id, 'U_USER', 'Les commandes sont verrouillees.');
@@ -576,6 +580,10 @@ class SlackInteractionHandlerTest extends TestCase
             ->for($session)
             ->create();
 
+        $this->messenger->shouldReceive('isAdmin')
+            ->with('U_USER')
+            ->andReturn(false);
+
         $this->messenger->shouldReceive('postEphemeral')
             ->once()
             ->with($session->provider_channel_id, 'U_USER', 'Les commandes sont verrouillees.');
@@ -706,6 +714,10 @@ class SlackInteractionHandlerTest extends TestCase
             ->for($this->organization)
             ->for($session)
             ->create();
+
+        $this->messenger->shouldReceive('isAdmin')
+            ->with('U_USER')
+            ->andReturn(false);
 
         $this->messenger->shouldReceive('postEphemeral')
             ->once()

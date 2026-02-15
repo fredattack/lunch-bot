@@ -60,8 +60,7 @@ class DashboardBlockBuilder
             DashboardState::History => $this->blocksForS6($context),
         });
 
-        $devUserId = config('slack.dev_user_id');
-        if ($devUserId && $context->userId === $devUserId) {
+        if ($this->isDevUser($context)) {
             $blocks = array_merge($blocks, $this->devToolsBlocks());
         }
 
@@ -84,6 +83,17 @@ class DashboardBlockBuilder
             ],
             ['type' => 'divider'],
         ];
+    }
+
+    private function isDevUser(DashboardContext $context): bool
+    {
+        $devUserId = config('slack.dev_user_id');
+
+        if ($devUserId && $context->userId === $devUserId) {
+            return true;
+        }
+
+        return $context->isAdmin;
     }
 
     private function devToolsBlocks(): array
@@ -364,13 +374,14 @@ class DashboardBlockBuilder
     {
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Restaurant inconnu';
+        $emoji = $vendor?->getEmojiMarkdown() ?? '';
         $fulfillmentLabel = $this->fulfillmentLabel($proposal->fulfillment_type);
         $deadlineTime = $proposal->deadline_time ?? '11:30';
 
         $responsibleText = $this->responsibleText($proposal);
         $participantsText = $this->participantsText($proposal, 5);
 
-        $sectionText = "*{$vendorName}*\n{$fulfillmentLabel} | Deadline {$deadlineTime} | {$responsibleText}";
+        $sectionText = "{$emoji}*{$vendorName}*\n{$fulfillmentLabel} | Deadline {$deadlineTime} | {$responsibleText}";
         if ($participantsText) {
             $sectionText .= "\n{$participantsText}";
         }

@@ -27,13 +27,17 @@ abstract class BaseInteractionHandler
             return false;
         }
 
-        if (! $session->isOpen()) {
-            $this->messenger->postEphemeral($channelId, $userId, 'Les commandes sont verrouillees.');
-
-            return false;
+        if ($session->isOpen()) {
+            return true;
         }
 
-        return true;
+        if ($session->isLocked() && $this->buildActor($userId)->isAdmin) {
+            return true;
+        }
+
+        $this->messenger->postEphemeral($channelId, $userId, 'Les commandes sont verrouillees.');
+
+        return false;
     }
 
     protected function buildActor(string $userId): Actor

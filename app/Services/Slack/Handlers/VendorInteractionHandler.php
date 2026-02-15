@@ -127,7 +127,11 @@ class VendorInteractionHandler extends BaseInteractionHandler
     {
         $devUserId = config('slack.dev_user_id');
 
-        return $devUserId && $userId === $devUserId;
+        if ($devUserId && $userId === $devUserId) {
+            return true;
+        }
+
+        return $this->messenger->isAdmin($userId);
     }
 
     private function openAddModal(string $value, string $triggerId): void

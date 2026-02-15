@@ -96,6 +96,11 @@ class SlackService
             return true;
         }
 
+        $organization = Organization::current();
+        if ($organization?->installation?->installed_by_provider_user_id === $userId) {
+            return true;
+        }
+
         $user = $this->usersInfo($userId);
 
         return (bool) ($user['is_admin'] ?? false) || (bool) ($user['is_owner'] ?? false);
