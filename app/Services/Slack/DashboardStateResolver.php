@@ -14,10 +14,6 @@ use Illuminate\Support\Collection;
 
 class DashboardStateResolver
 {
-    public function __construct(
-        private readonly SlackService $slack
-    ) {}
-
     public function resolve(LunchSession $session, string $userId, bool $isAdmin = false): DashboardContext
     {
         $timezone = config('lunch.timezone', 'Europe/Paris');
@@ -161,18 +157,13 @@ class DashboardStateResolver
     private function resolveLocale(?Organization $organization): string
     {
         if (! $organization) {
-            return 'en';
+            return 'fr';
         }
 
         if ($organization->locale) {
             return $organization->locale;
         }
 
-        $teamInfo = $this->slack->teamInfo();
-        $locale = $teamInfo['locale'] ?? 'en';
-
-        $organization->update(['locale' => $locale]);
-
-        return $locale;
+        return 'fr';
     }
 }

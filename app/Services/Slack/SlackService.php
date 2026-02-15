@@ -189,6 +189,7 @@ class SlackService
                 Log::warning('Slack API error.', [
                     'method' => $method,
                     'error' => $error,
+                    'response_metadata' => $data['response_metadata'] ?? null,
                 ]);
             }
         }

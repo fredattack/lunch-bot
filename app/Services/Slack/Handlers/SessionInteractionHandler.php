@@ -13,6 +13,7 @@ use App\Services\Slack\SlackBlockBuilder;
 use App\Services\Slack\SlackMessenger;
 use App\Services\Slack\SlackService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class SessionInteractionHandler extends BaseInteractionHandler
 {
@@ -41,18 +42,26 @@ class SessionInteractionHandler extends BaseInteractionHandler
 
     public function handleLunchDashboard(string $userId, string $channelId, string $triggerId, ?string $dateOverride = null): void
     {
-        $timezone = config('lunch.timezone', 'Europe/Paris');
-        $date = $dateOverride ?? Carbon::now($timezone)->toDateString();
-        $deadlineTime = config('lunch.deadline_time', '11:30');
-        $deadlineAt = Carbon::parse("{$date} {$deadlineTime}", $timezone);
+        try {
+            $timezone = config('lunch.timezone', 'Europe/Paris');
+            $date = $dateOverride ?? Carbon::now($timezone)->toDateString();
+            $deadlineTime = config('lunch.deadline_time', '11:30');
+            $deadlineAt = Carbon::parse("{$date} {$deadlineTime}", $timezone);
 
-        $session = $this->createLunchSession->handle($date, $channelId, $deadlineAt);
-        $isAdmin = $this->messenger->isAdmin($userId);
+            $session = $this->createLunchSession->handle($date, $channelId, $deadlineAt);
+            $isAdmin = $this->messenger->isAdmin($userId);
 
-        $context = $this->stateResolver->resolve($session, $userId, $isAdmin);
-        $view = $this->dashboardBlocks->buildModal($context);
+            $context = $this->stateResolver->resolve($session, $userId, $isAdmin);
+            $view = $this->dashboardBlocks->buildModal($context);
 
-        $this->messenger->openModal($triggerId, $view);
+            $this->messenger->openModal($triggerId, $view);
+        } catch (\Throwable $e) {
+            Log::error('Dashboard handler exception.', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile().':'.$e->getLine(),
+            ]);
+            $this->messenger->postEphemeral($channelId, $userId, "Erreur dashboard : {$e->getMessage()}");
+        }
     }
 
     private function openDashboard(string $userId, string $channelId, string $triggerId, ?string $dateOverride): void
