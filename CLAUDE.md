@@ -75,31 +75,32 @@ public function handle(Model $model): void
 - Logique spécifique à un seul controller sans réutilisation prévue
 
 ### Actions (Logique Métier)
-Toutes les Actions sont dans `app/Actions/Lunch/` :
-- `CreateLunchSession` - Crée ou récupère une LunchSession
-- `CloseLunchSession` - Ferme une session et ses proposals
-- `LockExpiredSessions` - Verrouille les sessions passées deadline
-- `ProposeVendor` - Crée une proposition de vendor
-- `AssignRole` - Assigne runner/orderer (avec lock transactionnel)
-- `DelegateRole` - Transfère un rôle à un autre utilisateur
-- `CreateOrder` - Crée une commande
-- `UpdateOrder` - Met à jour une commande avec audit log
-- `AdjustOrderPrice` - Ajuste le prix final
-- `CreateVendor` / `UpdateVendor` - Gestion des vendors
+Les Actions sont organisées par domaine dans `app/Actions/` :
+- `LunchSession/` : `CreateLunchSession`, `CloseLunchSession`, `LockExpiredSessions`
+- `Order/` : `CreateOrder`, `UpdateOrder`, `DeleteOrder`
+- `VendorProposal/` : `ProposeVendor`, `ProposeRestaurant`, `AssignRole` (lock transactionnel), `DelegateRole`
+- `Vendor/` : `CreateVendor`, `UpdateVendor`
 
 ### Couche Slack (Adaptateur)
-La couche Slack dans `app/Slack/` sépare la logique de présentation :
+La couche Slack dans `app/Services/Slack/` sépare la logique de présentation :
 - **SlackService** - Client HTTP bas niveau pour l'API Slack
 - **SlackBlockBuilder** - Construction de Block Kit JSON
 - **SlackMessenger** - Orchestration des messages (post, update, ephemeral)
-- **SlackInteractionHandler** - Dispatch des interactions Slack vers les Actions
-- **SlackActions** - Constantes pour action IDs et callback IDs
+- **SlackInteractionHandler** - Dispatch des interactions vers les handlers spécialisés
+- **SlackAction** (enum) - Identifiants d'actions et callbacks avec catégorisation (`isSession()`, `isOrder()`, `isVendor()`, `isDev()`, `isProposal()`)
+
+**Handlers spécialisés** dans `app/Services/Slack/Handlers/` :
+- **BaseInteractionHandler** - Méthodes partagées (state parsing, file upload, price management)
+- **SessionInteractionHandler** - Dashboard, ouverture/fermeture de session
+- **ProposalInteractionHandler** - Propositions de vendors, rôles, récapitulatifs
+- **OrderInteractionHandler** - Création/édition/suppression de commandes
+- **VendorInteractionHandler** - Gestion des enseignes, actions dev
 
 **Pattern d'interaction :**
 ```
-Controller → SlackInteractionHandler → Action → Model
-                     ↓
-              SlackMessenger → SlackService
+Controller → SlackInteractionHandler → Handler spécialisé → Action → Model
+                                              ↓
+                                       SlackMessenger → SlackService
 ```
 
 ### Data Model
@@ -150,6 +151,21 @@ LUNCH_TIMEZONE=Europe/Paris
 ### Config Files
 - `config/slack.php` - Slack credentials and admin user IDs
 - `config/lunch.php` - Channel ID, post/deadline times, timezone
+
+## Documentation
+```
+Docs/
+├── project/          # Vision produit
+│   ├── meta-contexte.md   # Contexte et philosophie du projet
+│   ├── mvp.md             # Périmètre MVP et phases suivantes
+│   └── roadmap.md         # EPICs et Stories par phase
+├── resources/        # Ressources techniques
+│   └── action-pattern.md  # Guide du pattern Action
+└── reviews/          # Audits et revues
+    ├── audit.md           # Audit technique complet
+    ├── audit-business.md  # Audit business et product marketing
+    └── code-review.md     # Revue de code post-audit
+```
 
 ## Slack App Setup
 Required OAuth scopes: `chat:write`, `chat:write.public`, `commands`, `users:read`, `channels:read`, `groups:read`
