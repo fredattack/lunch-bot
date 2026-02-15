@@ -56,7 +56,8 @@ class SlackBlockBuilder
         if ($logoUrl) {
             $headerElements[] = ['type' => 'image', 'image_url' => $logoUrl, 'alt_text' => $vendor->name];
         }
-        $headerElements[] = ['type' => 'mrkdwn', 'text' => "*{$vendor->name}* ({$menu})"];
+        $emojiMarkdown = $vendor->getEmojiMarkdown();
+        $headerElements[] = ['type' => 'mrkdwn', 'text' => "{$emojiMarkdown}*{$vendor->name}* ({$menu})"];
 
         $blocks[] = [
             'type' => 'context',
@@ -214,13 +215,15 @@ class SlackBlockBuilder
 
     private function vendorListItem(Vendor $vendor): array
     {
+        $emoji = $vendor->getEmojiMarkdown();
+
         return [
             [
                 'type' => 'section',
                 'block_id' => "vendor_{$vendor->id}",
                 'text' => [
                     'type' => 'mrkdwn',
-                    'text' => "*{$vendor->name}*",
+                    'text' => "{$emoji}*{$vendor->name}*",
                 ],
                 'accessory' => [
                     'type' => 'button',
@@ -487,6 +490,14 @@ class SlackBlockBuilder
 
     public function editVendorModal(Vendor $vendor, array $metadata = []): array
     {
+        $emoji = $vendor->getEmojiMarkdown();
+        $headerBlock = [
+            'type' => 'context',
+            'elements' => [
+                ['type' => 'mrkdwn', 'text' => "{$emoji}*{$vendor->name}*"],
+            ],
+        ];
+
         return [
             'type' => 'modal',
             'callback_id' => SlackAction::CallbackEnseigneUpdate->value,
@@ -503,7 +514,7 @@ class SlackBlockBuilder
                 'type' => 'plain_text',
                 'text' => 'Annuler',
             ],
-            'blocks' => array_merge($this->vendorBlocks($vendor), [
+            'blocks' => array_merge([$headerBlock], $this->vendorBlocks($vendor), [
                 [
                     'type' => 'input',
                     'block_id' => 'active',
