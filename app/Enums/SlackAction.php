@@ -87,4 +87,71 @@ enum SlackAction: string
     {
         return str_starts_with($this->value, 'dashboard');
     }
+
+    public function isSession(): bool
+    {
+        return in_array($this, [
+            self::OpenLunchDashboard,
+            self::SessionClose,
+            self::CloseDay,
+            self::DashboardCloseSession,
+        ], true);
+    }
+
+    public function isOrder(): bool
+    {
+        return in_array($this, [
+            self::OpenOrderForProposal,
+            self::OrderOpenEdit,
+            self::OrderDelete,
+            self::DashboardJoinProposal,
+            self::DashboardOrderHere,
+            self::DashboardMyOrder,
+            self::OpenOrderModal,
+            self::OpenEditOrderModal,
+        ], true);
+    }
+
+    public function isVendor(): bool
+    {
+        return in_array($this, [
+            self::OpenAddEnseigneModal,
+            self::OpenManageEnseigneModal,
+            self::DashboardVendorsList,
+            self::VendorsListSearch,
+            self::VendorsListEdit,
+        ], true);
+    }
+
+    public function isDev(): bool
+    {
+        return in_array($this, [
+            self::DevResetDatabase,
+            self::DevExportVendors,
+        ], true);
+    }
+
+    public function isProposal(): bool
+    {
+        return in_array($this, [
+            self::OpenProposalModal,
+            self::DashboardStartFromCatalog,
+            self::DashboardRelaunch,
+            self::DashboardCreateProposal,
+            self::DashboardChooseFavorite,
+            self::DashboardProposeVendor,
+            self::ProposalOpenManage,
+            self::ProposalTakeCharge,
+            self::ProposalOpenRecap,
+            self::ProposalClose,
+            self::ProposalSetStatus,
+            self::ClaimRunner,
+            self::ClaimOrderer,
+            self::OpenDelegateModal,
+            self::OpenAdjustPriceModal,
+            self::OpenSummary,
+            self::DashboardClaimResponsible,
+            self::DashboardViewOrders,
+        ], true);
+    }
 }

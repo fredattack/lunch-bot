@@ -191,4 +191,41 @@ class LockExpiredSessionsTest extends TestCase
         $this->assertInstanceOf(Collection::class, $result);
         $this->assertCount(0, $result);
     }
+
+    public function test_handles_dst_spring_forward_transition(): void
+    {
+        // March 2025 CET->CEST: clocks spring forward at 2:00 AM on March 30
+        // Set time to 12:00 CEST (after spring forward)
+        Carbon::setTestNow(Carbon::parse('2025-03-30 12:00:00', 'Europe/Paris'));
+
+        $session = LunchSession::factory()
+            ->for($this->organization)
+            ->open()
+            ->create([
+                'deadline_at' => Carbon::parse('2025-03-30 11:30:00', 'Europe/Paris'),
+            ]);
+
+        $result = $this->action->handle('Europe/Paris');
+
+        $this->assertCount(1, $result);
+        $this->assertEquals($session->id, $result->first()->id);
+    }
+
+    public function test_handles_dst_fall_back_transition(): void
+    {
+        // October 2025 CEST->CET: clocks fall back at 3:00 AM on October 26
+        Carbon::setTestNow(Carbon::parse('2025-10-26 12:00:00', 'Europe/Paris'));
+
+        $session = LunchSession::factory()
+            ->for($this->organization)
+            ->open()
+            ->create([
+                'deadline_at' => Carbon::parse('2025-10-26 11:30:00', 'Europe/Paris'),
+            ]);
+
+        $result = $this->action->handle('Europe/Paris');
+
+        $this->assertCount(1, $result);
+        $this->assertEquals($session->id, $result->first()->id);
+    }
 }

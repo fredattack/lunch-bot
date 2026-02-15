@@ -10,6 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class VerifySlackSignature
 {
+    use ExtractsSlackTeamId;
+
     public function handle(Request $request, Closure $next): Response
     {
         $timestamp = $request->header('x-slack-request-timestamp');
@@ -57,36 +59,5 @@ class VerifySlackSignature
         }
 
         return config('slack.signing_secret');
-    }
-
-    private function extractTeamId(Request $request): ?string
-    {
-        $content = $request->getContent();
-
-        if ($request->has('payload')) {
-            $payload = json_decode($request->input('payload', '{}'), true);
-            if (is_array($payload)) {
-                return $payload['team']['id'] ?? $payload['team_id'] ?? null;
-            }
-        }
-
-        $data = json_decode($content, true);
-        if (! is_array($data)) {
-            return null;
-        }
-
-        if (isset($data['team_id'])) {
-            return $data['team_id'];
-        }
-
-        if (isset($data['team']['id'])) {
-            return $data['team']['id'];
-        }
-
-        if (isset($data['event']['team'])) {
-            return $data['event']['team'];
-        }
-
-        return null;
     }
 }

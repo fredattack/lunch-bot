@@ -23,7 +23,11 @@ class AssignRole
             }
 
             $locked->{$field} = $userId;
-            $locked->status = ProposalStatus::Ordering;
+
+            if ($locked->status === ProposalStatus::Open) {
+                $locked->status = ProposalStatus::Ordering;
+            }
+
             $locked->save();
 
             return true;

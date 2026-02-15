@@ -184,6 +184,15 @@ class SlackService
 
     private function client(string $token): PendingRequest
     {
-        return Http::withToken($token)->asJson();
+        return Http::withToken($token)
+            ->asJson()
+            ->timeout(10)
+            ->retry(3, 1000, function (\Exception $exception) {
+                if ($exception instanceof \Illuminate\Http\Client\RequestException) {
+                    return $exception->response?->status() === 429;
+                }
+
+                return $exception instanceof \Illuminate\Http\Client\ConnectionException;
+            });
     }
 }

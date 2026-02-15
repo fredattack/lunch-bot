@@ -135,4 +135,43 @@ class UpdateOrderTest extends TestCase
         $this->assertEquals(null, $auditLog[1]['changes']['notes']['from']);
         $this->assertEquals('New notes', $auditLog[1]['changes']['notes']['to']);
     }
+
+    public function test_handles_very_large_price_value(): void
+    {
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
+        $order = Order::factory()->for($proposal)->create([
+            'price_estimated' => 0,
+        ]);
+
+        $result = $this->action->handle($order, ['price_estimated' => 99999.99], 'U_ACTOR');
+
+        $this->assertEquals(99999.99, (float) $result->fresh()->price_estimated);
+    }
+
+    public function test_updates_multiple_fields_in_one_call(): void
+    {
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()->for($session)->create();
+        $order = Order::factory()->for($proposal)->create([
+            'description' => 'Old',
+            'price_estimated' => 10.00,
+            'notes' => null,
+            'audit_log' => [],
+        ]);
+
+        $result = $this->action->handle($order, [
+            'description' => 'New',
+            'price_estimated' => 15.00,
+            'notes' => 'Extra sauce',
+        ], 'U_ACTOR');
+
+        $this->assertEquals('New', $result->description);
+        $this->assertEquals(15.00, (float) $result->price_estimated);
+        $this->assertEquals('Extra sauce', $result->notes);
+
+        $auditLog = $result->fresh()->audit_log;
+        $this->assertCount(1, $auditLog);
+        $this->assertCount(3, $auditLog[0]['changes']);
+    }
 }

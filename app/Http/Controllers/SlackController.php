@@ -10,7 +10,7 @@ class SlackController extends Controller
 {
     public function events(Request $request, SlackInteractionHandler $handler): Response
     {
-        if ($request->header('X-Slack-Retry-Num')) {
+        if ($this->isDuplicateRetry($request)) {
             return response('', 200);
         }
 
@@ -45,15 +45,25 @@ class SlackController extends Controller
 
     public function interactivity(Request $request, SlackInteractionHandler $handler): Response
     {
-        if ($request->header('X-Slack-Retry-Num')) {
+        if ($this->isDuplicateRetry($request)) {
             return response('', 200);
         }
 
-        $payload = json_decode($request->input('payload', '{}'), true);
+        try {
+            $payload = json_decode($request->input('payload', '{}'), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return response('Invalid payload', 400);
+        }
+
         if (! is_array($payload)) {
             return response('Invalid payload', 400);
         }
 
         return $handler->handleInteractivity($payload);
+    }
+
+    private function isDuplicateRetry(Request $request): bool
+    {
+        return $request->hasHeader('X-Slack-Retry-Num');
     }
 }

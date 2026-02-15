@@ -8,10 +8,11 @@ use App\Models\LunchSession;
 use App\Models\Order;
 use App\Models\Vendor;
 use App\Models\VendorProposal;
-use Carbon\CarbonInterface;
 
 class SlackBlockBuilder
 {
+    use SlackBlockHelpers;
+
     public function dailyKickoffBlocks(LunchSession $session): array
     {
         $deadline = $this->formatTime($session->deadline_at);
@@ -43,7 +44,7 @@ class SlackBlockBuilder
         $menu = $vendor->url_menu ? "<{$vendor->url_menu}|Menu>" : 'Menu indisponible';
         $runner = $proposal->runner_user_id ? "<@{$proposal->runner_user_id}>" : '_non assigne_';
         $orderer = $proposal->orderer_user_id ? "<@{$proposal->orderer_user_id}>" : '_non assigne_';
-        $type = $proposal->fulfillment_type === FulfillmentType::Delivery ? 'Delivery' : 'Pickup';
+        $type = $this->fulfillmentLabel($proposal->fulfillment_type);
         $platform = $proposal->platform ? "Plateforme: {$proposal->platform}" : 'Plateforme: -';
 
         $blocks = [];
@@ -102,8 +103,8 @@ class SlackBlockBuilder
     {
         $lines = [];
         foreach ($orders as $order) {
-            $final = $order->price_final !== null ? number_format((float) $order->price_final, 2) : '-';
-            $estimated = $order->price_estimated !== null ? number_format((float) $order->price_estimated, 2) : '-';
+            $final = $this->formatPrice($order->price_final !== null ? (float) $order->price_final : null);
+            $estimated = $this->formatPrice($order->price_estimated !== null ? (float) $order->price_estimated : null);
             $lines[] = "- <@{$order->provider_user_id}>: {$order->description} (est: {$estimated}, final: {$final})";
         }
 
@@ -260,8 +261,8 @@ class SlackBlockBuilder
             ];
         } else {
             foreach ($orders as $order) {
-                $priceEstimated = $order->price_estimated !== null ? number_format((float) $order->price_estimated, 2).' EUR' : '-';
-                $priceFinal = $order->price_final !== null ? number_format((float) $order->price_final, 2).' EUR' : '-';
+                $priceEstimated = $this->formatPrice($order->price_estimated !== null ? (float) $order->price_estimated : null);
+                $priceFinal = $this->formatPrice($order->price_final !== null ? (float) $order->price_final : null);
                 $description = strlen($order->description) > 50
                     ? substr($order->description, 0, 47).'...'
                     : $order->description;
@@ -1063,92 +1064,6 @@ class SlackBlockBuilder
         ];
     }
 
-    /**
-     * @param  array<int, VendorProposal>  $proposals
-     */
-    public function lunchDashboardModal(LunchSession $session, array $proposals, ?Order $userOrder, bool $canClose): array
-    {
-        $date = $session->date->format('d/m');
-        $deadline = $this->formatTime($session->deadline_at);
-        $statusLabel = $session->isOpen() ? 'Ouverte' : ($session->isLocked() ? 'Verrouillee' : 'Fermee');
-
-        $blocks = [
-            [
-                'type' => 'header',
-                'text' => [
-                    'type' => 'plain_text',
-                    'text' => "Lunch - session du {$date}",
-                ],
-            ],
-            [
-                'type' => 'context',
-                'elements' => [
-                    [
-                        'type' => 'mrkdwn',
-                        'text' => "Statut: *{$statusLabel}* | Deadline: {$deadline}",
-                    ],
-                ],
-            ],
-            [
-                'type' => 'divider',
-            ],
-        ];
-
-        if (empty($proposals)) {
-            $blocks[] = [
-                'type' => 'section',
-                'text' => [
-                    'type' => 'mrkdwn',
-                    'text' => '_Aucune proposition pour le moment._',
-                ],
-            ];
-        } else {
-            foreach ($proposals as $proposal) {
-                $blocks = array_merge($blocks, $this->dashboardProposalBlocks($proposal, $session));
-            }
-        }
-
-        $blocks[] = [
-            'type' => 'divider',
-        ];
-
-        $actionElements = [];
-
-        if ($session->isOpen()) {
-            $actionElements[] = $this->button('Proposer un restaurant', SlackAction::DashboardProposeVendor->value, (string) $session->id, 'primary');
-            $actionElements[] = $this->button('Choisir un favori', SlackAction::DashboardChooseFavorite->value, (string) $session->id);
-        }
-
-        if ($userOrder) {
-            $actionElements[] = $this->button('Ma commande', SlackAction::DashboardMyOrder->value, (string) $userOrder->vendor_proposal_id);
-        }
-
-        if ($canClose && ! $session->isClosed()) {
-            $actionElements[] = $this->button('Cloturer la session', SlackAction::DashboardCloseSession->value, (string) $session->id, 'danger');
-        }
-
-        if (! empty($actionElements)) {
-            $blocks[] = [
-                'type' => 'actions',
-                'elements' => $actionElements,
-            ];
-        }
-
-        return [
-            'type' => 'modal',
-            'callback_id' => SlackAction::CallbackLunchDashboard->value,
-            'title' => [
-                'type' => 'plain_text',
-                'text' => 'Lunch Dashboard',
-            ],
-            'close' => [
-                'type' => 'plain_text',
-                'text' => 'Fermer',
-            ],
-            'blocks' => $blocks,
-        ];
-    }
-
     public function errorModal(string $title, string $message): array
     {
         return [
@@ -1178,60 +1093,6 @@ class SlackBlockBuilder
                 ],
             ],
         ];
-    }
-
-    private function dashboardProposalBlocks(VendorProposal $proposal, LunchSession $session): array
-    {
-        $vendor = $proposal->vendor;
-        $vendorName = $vendor?->name ?? 'Enseigne inconnue';
-        $logoUrl = $vendor?->getLogoThumbUrl();
-        $responsible = $proposal->runner_user_id
-            ? "<@{$proposal->runner_user_id}>"
-            : ($proposal->orderer_user_id ? "<@{$proposal->orderer_user_id}>" : '_non assigne_');
-        $orderCount = $proposal->orders_count ?? $proposal->orders->count();
-
-        $headerElements = [];
-        if ($logoUrl) {
-            $headerElements[] = ['type' => 'image', 'image_url' => $logoUrl, 'alt_text' => $vendorName];
-        }
-        $headerElements[] = ['type' => 'mrkdwn', 'text' => "*{$vendorName}*"];
-
-        $blocks = [
-            [
-                'type' => 'context',
-                'elements' => $headerElements,
-            ],
-            [
-                'type' => 'section',
-                'text' => [
-                    'type' => 'mrkdwn',
-                    'text' => "Responsable: {$responsible} | Commandes: {$orderCount}",
-                ],
-            ],
-        ];
-
-        $actionElements = [];
-
-        if ($session->isOpen()) {
-            $actionElements[] = $this->button('Commander ici', SlackAction::DashboardOrderHere->value, (string) $proposal->id, 'primary');
-
-            if (! $proposal->runner_user_id && ! $proposal->orderer_user_id) {
-                $actionElements[] = $this->button('Je prends en charge', SlackAction::DashboardClaimResponsible->value, (string) $proposal->id);
-            }
-        }
-
-        if ($orderCount > 0) {
-            $actionElements[] = $this->button('Voir commandes', SlackAction::DashboardViewOrders->value, (string) $proposal->id);
-        }
-
-        if (! empty($actionElements)) {
-            $blocks[] = [
-                'type' => 'actions',
-                'elements' => $actionElements,
-            ];
-        }
-
-        return $blocks;
     }
 
     private function vendorBlocks(?Vendor $vendor = null): array
@@ -1382,45 +1243,17 @@ class SlackBlockBuilder
     private function fulfillmentInitialOptions(array $types): array
     {
         $options = [];
-        $labels = [
-            FulfillmentType::Pickup->value => 'A emporter',
-            FulfillmentType::Delivery->value => 'Livraison',
-            FulfillmentType::OnSite->value => 'Sur place',
-        ];
 
         foreach ($types as $type) {
-            if (isset($labels[$type])) {
+            $enum = FulfillmentType::tryFrom($type);
+            if ($enum) {
                 $options[] = [
-                    'text' => ['type' => 'plain_text', 'text' => $labels[$type]],
+                    'text' => ['type' => 'plain_text', 'text' => $this->fulfillmentLabel($enum)],
                     'value' => $type,
                 ];
             }
         }
 
         return $options;
-    }
-
-    private function button(string $text, string $actionId, string $value, ?string $style = null): array
-    {
-        $button = [
-            'type' => 'button',
-            'text' => [
-                'type' => 'plain_text',
-                'text' => $text,
-            ],
-            'action_id' => $actionId,
-            'value' => $value,
-        ];
-
-        if ($style) {
-            $button['style'] = $style;
-        }
-
-        return $button;
-    }
-
-    private function formatTime(?CarbonInterface $dateTime): string
-    {
-        return $dateTime ? $dateTime->format('H:i') : '-';
     }
 }

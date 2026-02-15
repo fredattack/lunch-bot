@@ -99,30 +99,6 @@ class SlackMessenger
         }
     }
 
-    /**
-     * @deprecated Use postOrderCreatedMessage instead
-     */
-    public function postProposalMessage(VendorProposal $proposal): void
-    {
-        $proposal->loadMissing(['vendor', 'orders', 'lunchSession']);
-        $blocks = $this->blocks->proposalBlocks($proposal, $proposal->orders->count());
-
-        $response = $this->slack->postMessage(
-            $proposal->lunchSession->provider_channel_id,
-            'Proposition: '.$proposal->vendor->name,
-            $blocks,
-            $proposal->lunchSession->provider_message_ts
-        );
-
-        if ($response['ok'] ?? false) {
-            $proposal->provider_message_ts = $response['ts'] ?? null;
-            $proposal->save();
-        }
-    }
-
-    /**
-     * @deprecated Legacy message with multiple buttons - use postOrderCreatedMessage instead
-     */
     public function updateProposalMessage(VendorProposal $proposal): void
     {
         if (! $proposal->provider_message_ts) {

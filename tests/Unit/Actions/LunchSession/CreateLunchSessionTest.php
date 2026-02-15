@@ -130,4 +130,29 @@ class CreateLunchSessionTest extends TestCase
         $this->assertNotEquals($session1->id, $session2->id);
         $this->assertDatabaseCount('lunch_sessions', 2);
     }
+
+    public function test_handles_deadline_in_the_past(): void
+    {
+        $date = Carbon::yesterday()->toDateString();
+        $channelId = 'C12345678';
+        $deadline = Carbon::yesterday()->setTime(11, 30);
+
+        $session = $this->action->handle($date, $channelId, $deadline);
+
+        $this->assertInstanceOf(LunchSession::class, $session);
+        $this->assertEquals($date, $session->date->toDateString());
+        $this->assertEquals(LunchSessionStatus::Open, $session->status);
+    }
+
+    public function test_handles_deadline_at_midnight_boundary(): void
+    {
+        $date = Carbon::today()->toDateString();
+        $channelId = 'C12345678';
+        $deadline = Carbon::today()->setTime(0, 0);
+
+        $session = $this->action->handle($date, $channelId, $deadline);
+
+        $this->assertInstanceOf(LunchSession::class, $session);
+        $this->assertTrue($deadline->eq($session->deadline_at));
+    }
 }

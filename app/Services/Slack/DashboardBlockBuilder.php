@@ -13,6 +13,8 @@ use Carbon\CarbonInterface;
 
 class DashboardBlockBuilder
 {
+    use SlackBlockHelpers;
+
     public function buildModal(DashboardContext $context): array
     {
         return [
@@ -44,8 +46,6 @@ class DashboardBlockBuilder
         return $prefix.$workspaceName;
     }
 
-    private const DEV_USER_ID = 'U08E9Q2KJGY';
-
     private function buildBlocks(DashboardContext $context): array
     {
         $blocks = $this->headerBlocks($context);
@@ -60,7 +60,8 @@ class DashboardBlockBuilder
             DashboardState::History => $this->blocksForS6($context),
         });
 
-        if ($context->userId === self::DEV_USER_ID) {
+        $devUserId = config('slack.dev_user_id');
+        if ($devUserId && $context->userId === $devUserId) {
             $blocks = array_merge($blocks, $this->devToolsBlocks());
         }
 
@@ -363,7 +364,7 @@ class DashboardBlockBuilder
     {
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Restaurant inconnu';
-        $fulfillmentLabel = $proposal->fulfillment_type === FulfillmentType::Delivery ? 'Livraison' : 'Sur place';
+        $fulfillmentLabel = $this->fulfillmentLabel($proposal->fulfillment_type);
         $deadlineTime = $proposal->deadline_time ?? '11:30';
 
         $responsibleText = $this->responsibleText($proposal);
@@ -493,10 +494,8 @@ class DashboardBlockBuilder
 
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Restaurant';
-        $fulfillmentLabel = $proposal->fulfillment_type === FulfillmentType::Delivery ? 'Livraison' : 'Sur place';
-        $priceText = $order->price_estimated !== null
-            ? number_format((float) $order->price_estimated, 2).' EUR'
-            : '-';
+        $fulfillmentLabel = $this->fulfillmentLabel($proposal->fulfillment_type);
+        $priceText = $this->formatPrice($order->price_estimated ? (float) $order->price_estimated : null);
 
         $description = strlen($order->description) > 60
             ? substr($order->description, 0, 57).'...'
@@ -621,7 +620,7 @@ class DashboardBlockBuilder
 
         $vendorName = $proposal->vendor?->name ?? 'Restaurant';
         $price = $order->price_estimated !== null
-            ? number_format((float) $order->price_estimated, 2).' EUR'
+            ? $this->formatPrice((float) $order->price_estimated)
             : '';
         $description = strlen($order->description) > 40
             ? substr($order->description, 0, 37).'...'
@@ -702,24 +701,5 @@ class DashboardBlockBuilder
     private function formatDateLabel(CarbonInterface $date, bool $isToday, string $locale = 'en'): string
     {
         return $date->locale($locale)->translatedFormat('D. d/m');
-    }
-
-    private function button(string $text, string $actionId, string $value, ?string $style = null): array
-    {
-        $button = [
-            'type' => 'button',
-            'text' => [
-                'type' => 'plain_text',
-                'text' => $text,
-            ],
-            'action_id' => $actionId,
-            'value' => $value,
-        ];
-
-        if ($style) {
-            $button['style'] = $style;
-        }
-
-        return $button;
     }
 }

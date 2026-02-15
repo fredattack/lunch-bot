@@ -10,6 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ResolveOrganization
 {
+    use ExtractsSlackTeamId;
+
     public function handle(Request $request, Closure $next): Response
     {
         $teamId = $this->extractTeamId($request);
@@ -40,31 +42,5 @@ class ResolveOrganization
         Organization::setCurrent($organization);
 
         return $next($request);
-    }
-
-    private function extractTeamId(Request $request): ?string
-    {
-        if ($request->has('payload')) {
-            $payload = json_decode($request->input('payload', '{}'), true);
-            if (is_array($payload)) {
-                return $payload['team']['id'] ?? $payload['team_id'] ?? null;
-            }
-        }
-
-        $data = $request->all();
-
-        if (isset($data['team_id'])) {
-            return $data['team_id'];
-        }
-
-        if (isset($data['team']['id'])) {
-            return $data['team']['id'];
-        }
-
-        if (isset($data['event']['team'])) {
-            return $data['event']['team'];
-        }
-
-        return null;
     }
 }

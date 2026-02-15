@@ -101,4 +101,28 @@ class AssignRoleTest extends TestCase
         $this->assertFalse($result);
         $this->assertEquals($originalRunnerUserId, $proposal->runner_user_id);
     }
+
+    public function test_assign_role_does_not_regress_proposal_status_from_placed(): void
+    {
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
+            ->create(['status' => ProposalStatus::Placed]);
+
+        $this->action->handle($proposal, 'orderer', 'U_ORDERER');
+
+        $this->assertEquals(ProposalStatus::Placed, $proposal->fresh()->status);
+    }
+
+    public function test_assign_role_does_not_regress_proposal_status_from_received(): void
+    {
+        $session = LunchSession::factory()->open()->create();
+        $proposal = VendorProposal::factory()
+            ->for($session)
+            ->create(['status' => ProposalStatus::Received]);
+
+        $this->action->handle($proposal, 'orderer', 'U_ORDERER');
+
+        $this->assertEquals(ProposalStatus::Received, $proposal->fresh()->status);
+    }
 }
