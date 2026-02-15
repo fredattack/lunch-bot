@@ -82,7 +82,7 @@ class DashboardBlockBuilder
                     $this->button(
                         'Quick Run',
                         SlackAction::QuickRunOpen->value,
-                        ''
+                        'open'
                     ),
                 ],
             ],
