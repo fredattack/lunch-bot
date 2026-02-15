@@ -40,7 +40,7 @@ Un bot Slack qui permet de :
 | Dimension | Impact |
 |-----------|--------|
 | **Productivité** | Estimation de 15-20 min/jour économisées par équipe vs coordination manuelle |
-| **Coût de développement** | Projet interne, stack technique maîtrisée (Laravel/PHP), pas de licence externe |
+| **Coût de développement** | Projet interne, stack technique maîtrisée, pas de licence externe |
 | **Scalabilité** | Architecture multi-tenant dès le départ — déployable sur plusieurs équipes/entités sans refonte |
 | **Potentiel commercial** | Modèle SaaS possible à terme (freemium + plans payants), marché non structuré |
 | **Innovation interne** | Démontre la capacité de l'entreprise à résoudre ses propres problèmes avec des outils sur mesure |
@@ -65,12 +65,11 @@ Un bot Slack qui permet de :
 
 | Dimension | Détail |
 |-----------|--------|
-| **Maturité technique** | Architecture solide : Action Pattern, multi-tenancy, séparation des couches, 280 tests automatisés |
-| **État d'avancement** | MVP à **70% terminé** — 32 stories DONE sur 46 |
-| **Stack** | Laravel 12 (PHP 8.4), SQLite (MVP), Slack Block Kit API |
-| **Qualité** | 280 tests, 537 assertions, 0 échecs, code style automatisé (Pint) |
+| **Maturité technique** | Architecture solide, multi-tenancy, séparation des couches, 280+ tests automatisés |
+| **État d'avancement** | MVP à **78% terminé** — 36 stories DONE sur 46. Ne reste que le Quick Run (10 stories) |
+| **Qualité** | 280+ tests, 0 échecs, formatage de code automatisé |
 | **Roadmap** | 3 phases clairement définies avec critères de passage objectifs |
-| **Risques identifiés** | 3 blockers critiques documentés avec plan de correction estimé à 5-7 jours |
+| **Stabilité & sécurité** | Tous les prérequis prod sont couverts (retry API, nettoyage fichiers, protection dev tools, verrous transactionnels) |
 | **Équipe requise** | 1 développeur fullstack pour la finalisation et le maintien |
 
 ---
@@ -107,10 +106,11 @@ Un bot Slack qui permet de :
 | **Catalogue Restaurants** | Liste, ajout, modification, upload logo/menu, recherche | 5/5 DONE |
 | **Dashboard /lunch** | 6 états contextuels selon la situation de l'utilisateur | 7/7 DONE |
 | **Messages Channel** | Kickoff, proposition, mise à jour temps réel, verrouillage, délégation, récap clôture | 6/6 DONE |
-| **Quick Run** | "Je vais chez X, quelqu'un veut quelque chose ?" | 0/9 — Phase suivante |
-| **Stabilité** | Sécurité prod, retry API, nettoyage fichiers | 0/4 — En cours |
+| **Stabilité & Sécurité** | Protection dev tools, retry API, nettoyage fichiers, verrous transactionnels | 4/4 DONE |
+| **Scheduler** | Kickoff automatique, verrouillage deadline | 2/3 DONE |
+| **Quick Run** | "Je vais chez X, quelqu'un veut quelque chose ?" | 0/9 — Prochaine étape |
 
-**Bilan : 32 stories terminées, 14 restantes pour le MVP complet.**
+**Bilan : 36 stories terminées sur 46 (78%). Seul le module Quick Run reste à implémenter.**
 
 ### 3.3 Le Dashboard Contextuel
 
@@ -127,55 +127,15 @@ La commande `/lunch` offre 6 vues différentes selon la situation de l'utilisate
 
 ---
 
-## 4. Architecture et Choix Techniques
+## 4. Garanties Techniques
 
-### 4.1 Vue d'ensemble
+Le projet a été conçu avec des principes qui garantissent sa pérennité et son évolutivité :
 
-```
-┌─────────────────────────────────────────────────┐
-│                    SLACK                         │
-│  (Events API + Interactivity + Block Kit)        │
-└─────────────────┬───────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────┐
-│            COUCHE ADAPTATEUR SLACK               │
-│  SlackService · SlackMessenger · BlockBuilder    │
-│  SlackInteractionHandler → Handlers spécialisés │
-└─────────────────┬───────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────┐
-│            COEUR MÉTIER (ACTIONS)                │
-│  CreateLunchSession · CreateOrder · AssignRole   │
-│  ProposeVendor · DelegateRole · CloseLunchSession│
-└─────────────────┬───────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────┐
-│              MODÈLE DE DONNÉES                   │
-│  LunchSession → VendorProposal → Order           │
-│  Vendor (standalone) · Organization (tenant)     │
-└─────────────────────────────────────────────────┘
-```
-
-### 4.2 Points forts architecturaux
-
-- **Indépendance du provider** : Le coeur métier ne dépend pas de Slack. L'ajout de Microsoft Teams ou Discord est architecturalement prévu (pattern adaptateur).
-- **Multi-tenant natif** : Isolation des données par organisation via Global Scopes Laravel. Chaque entreprise/workspace a ses propres données, inaccessibles aux autres.
-- **Action Pattern** : Chaque opération métier est encapsulée dans une classe dédiée, testable et réutilisable indépendamment.
-- **280 tests automatisés** : Couverture des actions, policies, middleware, et états du dashboard.
-
-### 4.3 Modèle de données
-
-```
-Organization (tenant / workspace)
-    │
-    └── LunchSession (1 par jour, par tenant)
-            │
-            └── VendorProposal (proposition d'un restaurant)
-                    │
-                    └── Order (commande individuelle d'un collaborateur)
-
-Vendor (restaurant — catalogue partagé par tenant)
-```
+- **Indépendant de Slack** : Le coeur de l'application ne dépend pas de Slack. L'ajout d'un autre canal (Microsoft Teams, Discord) est possible sans réécriture.
+- **Multi-tenant natif** : Chaque entreprise/workspace a ses données isolées. Le déploiement multi-équipes ou multi-entreprises est prévu dès le départ.
+- **Qualité logicielle** : 280+ tests automatisés couvrent l'ensemble des fonctionnalités. Le code est formaté et vérifié automatiquement.
+- **Stabilité en production** : Retry automatique sur les appels API, nettoyage des fichiers temporaires, protection des outils d'administration, et verrouillage transactionnel pour éviter les conflits de données.
+- **Prêt pour la montée en charge** : L'architecture permet une migration vers une base de données plus robuste si le nombre d'utilisateurs le justifie.
 
 ---
 
@@ -190,18 +150,20 @@ Vendor (restaurant — catalogue partagé par tenant)
     │  Déjeuner   │───────▶│  Engagement  │───────▶│  Découverte  │
     │  + Quick Run│        │              │        │              │
     └────────────┘        └──────────────┘        └──────────────┘
-     70% terminé           14 stories              10 stories
-     14 stories restantes  Critère: usage          Critère: rétention
+     78% terminé           14 stories              10 stories
+     10 stories restantes  Critère: usage          Critère: rétention
                            quotidien validé        J7 > 50%
 ```
 
-### 5.2 MVP — Finalisation (estimé : 2-3 semaines)
+### 5.2 MVP — Finalisation (estimé : 1-2 semaines)
+
+Le coeur du produit (sessions, commandes, dashboard, catalogue, stabilité) est **100% terminé**.
+Il ne reste qu'un seul chantier :
 
 | Chantier | Stories | Priorité |
 |----------|---------|----------|
 | Quick Run ("Je vais chez X") | 9 stories | Haute — use case quotidien non couvert |
-| Stabilité & sécurité | 4 stories | Critique — prérequis au déploiement |
-| Corrections blockers (audit) | 3 points critiques | Critique — 5-7 jours |
+| Rappel pré-deadline | 1 story | Moyenne — améliore le taux de commandes |
 
 ### 5.3 Phase 1 — Rétention & Engagement (post-validation MVP)
 
@@ -268,9 +230,8 @@ Vendor (restaurant — catalogue partagé par tenant)
 
 | Risque | Probabilité | Impact | Mitigation |
 |--------|-------------|--------|------------|
-| Blockers de sécurité non corrigés avant déploiement | Faible | Critique | Plan de correction documenté, estimé à 5-7 jours |
-| Dépendance à l'API Slack (indisponibilité) | Faible | Élevé | Mécanisme de retry prévu + architecture découplée |
-| Performance avec montée en charge | Faible | Moyen | Architecture prévue pour migration SQLite → PostgreSQL |
+| Dépendance à l'API Slack (indisponibilité) | Faible | Élevé | Mécanisme de retry en place + architecture découplée |
+| Performance avec montée en charge | Faible | Moyen | Architecture prévue pour migration vers une base plus robuste |
 
 ### 7.2 Risques produit
 
@@ -334,14 +295,14 @@ Aujourd'hui              6 mois                  12 mois
 |---------|-------------|--------|
 | **Validation du projet** | CEO | Accord pour finaliser le MVP et lancer la bêta |
 | **Identification du groupe pilote** | DRH | Sélection de 1-2 équipes de 10-15 personnes pour la bêta |
-| **Allocation ressource** | PM Lead | 1 développeur pendant 3-4 semaines pour finaliser le MVP |
+| **Allocation ressource** | PM Lead | 1 développeur pendant 1-2 semaines pour finaliser le Quick Run |
 | **Sponsoring interne** | DRH + CEO | Communication interne pour légitimer l'initiative |
 
 ### 9.2 Calendrier prévisionnel
 
 | Phase | Durée estimée | Livrable |
 |-------|--------------|----------|
-| Finalisation MVP (blockers + Quick Run) | 2-3 semaines | MVP complet et sécurisé |
+| Finalisation MVP (Quick Run) | 1-2 semaines | MVP complet et sécurisé |
 | Déploiement bêta | 1 semaine | Bot opérationnel sur le workspace pilote |
 | Observation et itération | 4 semaines | Rapport d'usage avec KPIs |
 | Décision Go/No-Go Phase 1 | Fin de bêta | Sur base des métriques de rétention |
@@ -360,8 +321,7 @@ Le produit aura réussi quand quelqu'un dans l'équipe dira naturellement :
 
 | Document | Emplacement | Description |
 |----------|-------------|-------------|
-| Contexte et philosophie du projet | `Docs/project/meta-contexte.md` | Décisions architecturales et invariants |
+| Contexte et philosophie du projet | `Docs/project/meta-contexte.md` | Vision, philosophie et invariants |
 | Périmètre MVP détaillé | `Docs/project/mvp.md` | Stories IN/OUT avec statuts |
-| Roadmap technique complète | `Docs/project/roadmap.md` | EPICs et stories par phase |
-| Audit technique | `Docs/reviews/audit.md` | Évaluation de la qualité et readiness bêta |
+| Roadmap complète | `Docs/project/roadmap.md` | EPICs et stories par phase |
 | Audit business et product marketing | `Docs/reviews/audit-business.md` | Analyse concurrentielle et stratégie d'adoption |
