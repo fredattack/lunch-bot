@@ -40,6 +40,10 @@ class SlackController extends Controller
             $handler->handleLunchDashboard($userId, $channelId, $triggerId);
         }
 
+        if ($command === '/quickrun') {
+            $handler->handleQuickRunCommand($userId, $channelId, $triggerId);
+        }
+
         return response('', 200);
     }
 

@@ -55,6 +55,20 @@ enum SlackAction: string
     case DevResetDatabase = 'dev.reset_database';
     case DevExportVendors = 'dev.export_vendors';
 
+    // Quick Run actions
+    case QuickRunOpen = 'quickrun.open';
+    case QuickRunAddRequest = 'quickrun.add_request';
+    case QuickRunEditRequest = 'quickrun.edit_request';
+    case QuickRunDeleteRequest = 'quickrun.delete_request';
+    case QuickRunLock = 'quickrun.lock';
+    case QuickRunClose = 'quickrun.close';
+    case QuickRunRecap = 'quickrun.recap';
+    case QuickRunAdjustPrices = 'quickrun.adjust_prices';
+    case CallbackQuickRunCreate = 'quickrun_create';
+    case CallbackQuickRunRequestCreate = 'quickrun_request_create';
+    case CallbackQuickRunRequestEdit = 'quickrun_request_edit';
+    case CallbackQuickRunClose = 'quickrun_close';
+
     // Vendor list actions
     case DashboardVendorsList = 'dashboard.vendors_list';
     case VendorsListSearch = 'vendors_list.search';
@@ -80,7 +94,8 @@ enum SlackAction: string
             || str_starts_with($this->value, 'lunch_')
             || str_starts_with($this->value, 'enseigne_')
             || str_starts_with($this->value, 'restaurant_')
-            || str_starts_with($this->value, 'role_');
+            || str_starts_with($this->value, 'role_')
+            || str_starts_with($this->value, 'quickrun_');
     }
 
     public function isDashboard(): bool
@@ -128,6 +143,20 @@ enum SlackAction: string
         return in_array($this, [
             self::DevResetDatabase,
             self::DevExportVendors,
+        ], true);
+    }
+
+    public function isQuickRun(): bool
+    {
+        return in_array($this, [
+            self::QuickRunOpen,
+            self::QuickRunAddRequest,
+            self::QuickRunEditRequest,
+            self::QuickRunDeleteRequest,
+            self::QuickRunLock,
+            self::QuickRunClose,
+            self::QuickRunRecap,
+            self::QuickRunAdjustPrices,
         ], true);
     }
 
