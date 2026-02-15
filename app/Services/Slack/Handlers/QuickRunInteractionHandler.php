@@ -35,7 +35,7 @@ class QuickRunInteractionHandler extends BaseInteractionHandler
     public function handleBlockAction(string $actionId, string $value, string $userId, string $triggerId, string $channelId, array $payload = []): void
     {
         match ($actionId) {
-            SlackAction::QuickRunOpen->value => $this->openCreateModal($channelId, $triggerId),
+            SlackAction::QuickRunOpen->value => $this->openCreateModal($channelId, $triggerId, $payload),
             SlackAction::QuickRunAddRequest->value => $this->openRequestModal($value, $userId, $channelId, $triggerId),
             SlackAction::QuickRunEditRequest->value => $this->openEditRequestModal($value, $userId, $channelId, $triggerId),
             SlackAction::QuickRunDeleteRequest->value => $this->handleDeleteRequest($value, $userId, $channelId),
@@ -158,10 +158,15 @@ class QuickRunInteractionHandler extends BaseInteractionHandler
         return response('', 200);
     }
 
-    private function openCreateModal(string $channelId, string $triggerId): void
+    private function openCreateModal(string $channelId, string $triggerId, array $payload = []): void
     {
         $view = $this->blocks->quickRunCreateModal($channelId);
-        $this->messenger->openModal($triggerId, $view);
+
+        if (isset($payload['view'])) {
+            $this->messenger->pushModal($triggerId, $view);
+        } else {
+            $this->messenger->openModal($triggerId, $view);
+        }
     }
 
     private function openRequestModal(string $value, string $userId, string $channelId, string $triggerId): void

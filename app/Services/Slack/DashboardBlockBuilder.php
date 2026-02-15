@@ -79,6 +79,11 @@ class DashboardBlockBuilder
                         SlackAction::DashboardVendorsList->value,
                         (string) $context->session->id
                     ),
+                    $this->button(
+                        'Quick Run',
+                        SlackAction::QuickRunOpen->value,
+                        ''
+                    ),
                 ],
             ],
             ['type' => 'divider'],
