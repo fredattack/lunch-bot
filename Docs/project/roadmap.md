@@ -89,15 +89,15 @@
 
 | # | Story | Phase | Statut |
 |---|-------|-------|--------|
-| 5.1 | En tant qu'utilisateur, je peux lancer un Quick Run en indiquant ou je vais et combien de temps les collegues ont pour repondre | MVP | TODO |
-| 5.2 | Quand un Quick Run est lance, le bot poste un message dans le channel avec le lieu, le delai et un bouton "Ajouter une demande" | MVP | TODO |
-| 5.3 | En tant que collegue, je peux ajouter une demande via un modal simple (description + prix estime optionnel) | MVP | TODO |
-| 5.4 | Le message du Quick Run se met a jour en temps reel (nombre de demandes, noms des demandeurs) | MVP | TODO |
-| 5.5 | En tant que runner du Quick Run, je peux cliquer "Je pars" pour verrouiller les demandes et voir le recap de ce que je dois acheter | MVP | TODO |
-| 5.6 | En tant que runner du Quick Run, je peux ajuster les prix reels au retour et cloturer le run | MVP | TODO |
-| 5.7 | A la cloture du Quick Run, le bot poste le recap final avec les montants dus au runner | MVP | TODO |
-| 5.8 | En tant que collegue, je peux modifier ou supprimer ma demande tant que le runner n'est pas parti | MVP | TODO |
-| 5.9 | Si le delai expire sans que le runner clique "Je pars", les demandes sont automatiquement verrouillees | MVP | TODO |
+| 5.1 | En tant qu'utilisateur, je peux lancer un Quick Run en indiquant ou je vais et combien de temps les collegues ont pour repondre | MVP | DONE |
+| 5.2 | Quand un Quick Run est lance, le bot poste un message dans le channel avec le lieu, le delai et un bouton "Ajouter une demande" | MVP | DONE |
+| 5.3 | En tant que collegue, je peux ajouter une demande via un modal simple (description + prix estime optionnel) | MVP | DONE |
+| 5.4 | Le message du Quick Run se met a jour en temps reel (nombre de demandes, noms des demandeurs) | MVP | DONE |
+| 5.5 | En tant que runner du Quick Run, je peux cliquer "Je pars" pour verrouiller les demandes et voir le recap de ce que je dois acheter | MVP | DONE |
+| 5.6 | En tant que runner du Quick Run, je peux ajuster les prix reels au retour et cloturer le run | MVP | DONE |
+| 5.7 | A la cloture du Quick Run, le bot poste le recap final avec les montants dus au runner | MVP | DONE |
+| 5.8 | En tant que collegue, je peux modifier ou supprimer ma demande tant que le runner n'est pas parti | MVP | DONE |
+| 5.9 | Si le delai expire sans que le runner clique "Je pars", les demandes sont automatiquement verrouillees | MVP | DONE |
 
 ---
 
@@ -111,7 +111,7 @@
 | 6.2 | Le bot verrouille automatiquement les sessions dont la deadline est passee (check chaque minute) | MVP | DONE |
 | 6.3 | Le bot envoie un rappel dans le channel X minutes avant la deadline | Phase 1 | TODO |
 | 6.4 | Le bot poste un recap hebdomadaire chaque vendredi a 16h | Phase 1 | TODO |
-| 6.5 | Le bot verrouille automatiquement les Quick Runs dont le delai est expire | MVP | TODO |
+| 6.5 | Le bot verrouille automatiquement les Quick Runs dont le delai est expire | MVP | DONE |
 
 ---
 
@@ -121,10 +121,10 @@
 
 | # | Story | Phase | Statut |
 |---|-------|-------|--------|
-| 7.1 | Les outils de developpement (reset DB, export) sont inaccessibles en production | MVP | TODO |
-| 7.2 | Les appels a l'API Slack sont reessayes automatiquement en cas d'echec ou de rate limit | MVP | TODO |
-| 7.3 | Les fichiers temporaires (upload de logos) sont nettoyes apres traitement | MVP | TODO |
-| 7.4 | La delegation de role utilise un verrou transactionnel pour eviter les corruptions | MVP | TODO |
+| 7.1 | Les outils de developpement (reset DB, export) sont inaccessibles en production | MVP | DONE |
+| 7.2 | Les appels a l'API Slack sont reessayes automatiquement en cas d'echec ou de rate limit | MVP | DONE |
+| 7.3 | Les fichiers temporaires (upload de logos) sont nettoyes apres traitement | MVP | DONE |
+| 7.4 | La delegation de role utilise un verrou transactionnel pour eviter les corruptions | MVP | DONE |
 
 ---
 
@@ -169,12 +169,12 @@
 | 2 - Catalogue Restaurants | 5 | 0 | 5 |
 | 3 - Dashboard & Navigation | 7 | 0 | 7 |
 | 4 - Messages & Notifications | 6 | 0 | 6 |
-| 5 - Quick Run | 0 | 9 | 9 |
-| 6 - Scheduler & Automatisation | 2 | 1 | 3 |
-| 7 - Stabilite & Fiabilite | 0 | 4 | 4 |
-| **Total MVP** | **32** | **14** | **46** |
+| 5 - Quick Run | 9 | 0 | 9 |
+| 6 - Scheduler & Automatisation | 3 | 0 | 3 |
+| 7 - Stabilite & Fiabilite | 4 | 0 | 4 |
+| **Total MVP** | **46** | **0** | **46** |
 
-**32 stories deja terminees, 14 a faire pour le MVP.**
+**MVP 100% termine. 46 stories implementees et testees.**
 
 ### Phase 1 - Retention & Engagement
 
@@ -199,14 +199,14 @@
 ## Vue d'ensemble
 
 ```
-MVP (32 DONE + 14 TODO)
+MVP (46 DONE)
   ├── Session Dejeuner ██████████████████████████ 12/12
   ├── Catalogue         ██████████████████████████ 5/5
   ├── Dashboard         ██████████████████████████ 7/7
   ├── Messages          ██████████████████████████ 6/6
-  ├── Quick Run         ░░░░░░░░░░░░░░░░░░░░░░░░░ 0/9
-  ├── Scheduler         ████████████████░░░░░░░░░░ 2/3
-  └── Stabilite         ░░░░░░░░░░░░░░░░░░░░░░░░░ 0/4
+  ├── Quick Run         ██████████████████████████ 9/9
+  ├── Scheduler         ██████████████████████████ 3/3
+  └── Stabilite         ██████████████████████████ 4/4
 
 Phase 1 - Retention (14 TODO)
   ├── Favoris / Reorder
@@ -225,4 +225,4 @@ Phase 2 - Social (10 TODO)
   └── Balance de remboursement
 ```
 
-**Le MVP est a 70% termine. Les 14 stories restantes se concentrent sur le Quick Run (9) et la stabilisation (4).**
+**Le MVP est 100% termine. Les 24 stories restantes sont reparties entre la Phase 1 (Retention, 14 stories) et la Phase 2 (Social & Discovery, 10 stories).**

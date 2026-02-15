@@ -5,6 +5,7 @@ namespace App\Services\Slack;
 use App\Enums\SlackAction;
 use App\Services\Slack\Handlers\OrderInteractionHandler;
 use App\Services\Slack\Handlers\ProposalInteractionHandler;
+use App\Services\Slack\Handlers\QuickRunInteractionHandler;
 use App\Services\Slack\Handlers\SessionInteractionHandler;
 use App\Services\Slack\Handlers\VendorInteractionHandler;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +18,7 @@ class SlackInteractionHandler
         private readonly SlackBlockBuilder $blocks,
         private readonly OrderInteractionHandler $orderHandler,
         private readonly ProposalInteractionHandler $proposalHandler,
+        private readonly QuickRunInteractionHandler $quickRunHandler,
         private readonly SessionInteractionHandler $sessionHandler,
         private readonly VendorInteractionHandler $vendorHandler
     ) {}
@@ -29,6 +31,17 @@ class SlackInteractionHandler
     public function handleLunchDashboard(string $userId, string $channelId, string $triggerId, ?string $dateOverride = null): void
     {
         $this->sessionHandler->handleLunchDashboard($userId, $channelId, $triggerId, $dateOverride);
+    }
+
+    public function handleQuickRunCommand(string $userId, string $channelId, string $triggerId): void
+    {
+        $this->quickRunHandler->handleBlockAction(
+            SlackAction::QuickRunOpen->value,
+            '',
+            $userId,
+            $triggerId,
+            $channelId
+        );
     }
 
     public function handleInteractivity(array $payload): Response
@@ -86,6 +99,12 @@ class SlackInteractionHandler
             return;
         }
 
+        if ($slackAction->isQuickRun()) {
+            $this->quickRunHandler->handleBlockAction($actionId, $value, $userId, $triggerId, $channelId, $payload);
+
+            return;
+        }
+
         if ($slackAction->isProposal()) {
             $this->proposalHandler->handleBlockAction($actionId, $value, $userId, $triggerId, $channelId);
 
@@ -115,6 +134,10 @@ class SlackInteractionHandler
                 SlackAction::CallbackOrderEdit->value, 'order.edit' => $this->orderHandler->handleOrderEdit($payload, $userId),
                 SlackAction::CallbackRoleDelegate->value, 'role.delegate' => $this->proposalHandler->handleRoleDelegate($payload, $userId),
                 SlackAction::CallbackOrderAdjustPrice->value, 'order.adjust_price' => $this->orderHandler->handleAdjustPrice($payload, $userId),
+                SlackAction::CallbackQuickRunCreate->value => $this->quickRunHandler->handleQuickRunCreate($payload, $userId),
+                SlackAction::CallbackQuickRunRequestCreate->value => $this->quickRunHandler->handleRequestCreate($payload, $userId),
+                SlackAction::CallbackQuickRunRequestEdit->value => $this->quickRunHandler->handleRequestEdit($payload, $userId),
+                SlackAction::CallbackQuickRunClose->value => $this->quickRunHandler->handleQuickRunCloseSubmission($payload, $userId),
                 default => response('', 200),
             };
         } catch (InvalidArgumentException $e) {

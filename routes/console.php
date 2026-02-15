@@ -2,6 +2,7 @@
 
 use App\Actions\LunchSession\CreateLunchSession;
 use App\Actions\LunchSession\LockExpiredSessions;
+use App\Actions\QuickRun\LockExpiredQuickRuns;
 use App\Models\Organization;
 use App\Services\Slack\SlackMessenger;
 use Carbon\Carbon;
@@ -46,6 +47,25 @@ Schedule::call(function () {
 
             if ($lockedSessions->isNotEmpty()) {
                 $messenger->notifySessionsLocked($lockedSessions);
+            }
+        });
+
+    Organization::setCurrent(null);
+})->everyMinute();
+
+Schedule::call(function () {
+    $lockAction = app(LockExpiredQuickRuns::class);
+    $messenger = app(SlackMessenger::class);
+
+    Organization::with('installation')
+        ->whereHas('installation')
+        ->each(function (Organization $organization) use ($lockAction, $messenger) {
+            Organization::setCurrent($organization);
+
+            $lockedQuickRuns = $lockAction->handle();
+
+            if ($lockedQuickRuns->isNotEmpty()) {
+                $messenger->notifyQuickRunsLocked($lockedQuickRuns);
             }
         });
 

@@ -6,6 +6,8 @@ use App\Enums\FulfillmentType;
 use App\Enums\SlackAction;
 use App\Models\LunchSession;
 use App\Models\Order;
+use App\Models\QuickRun;
+use App\Models\QuickRunRequest;
 use App\Models\VendorProposal;
 use Illuminate\Support\Collection;
 
@@ -231,6 +233,112 @@ class SlackMessenger
             ],
             $proposal->lunchSession->provider_message_ts
         );
+    }
+
+    public function postQuickRun(QuickRun $quickRun): void
+    {
+        $quickRun->loadMissing('requests');
+        $requestCount = $quickRun->requests->count();
+        $requesterNames = $quickRun->requests->map(fn (QuickRunRequest $r) => "<@{$r->provider_user_id}>")->all();
+
+        $blocks = $this->blocks->quickRunBlocks($quickRun, $requestCount, $requesterNames);
+        $response = $this->slack->postMessage(
+            $quickRun->provider_channel_id,
+            "Quick Run: {$quickRun->destination}",
+            $blocks
+        );
+
+        if ($response['ok'] ?? false) {
+            $quickRun->provider_message_ts = $response['ts'] ?? null;
+            $quickRun->save();
+        }
+    }
+
+    public function updateQuickRunMessage(QuickRun $quickRun): void
+    {
+        if (! $quickRun->provider_message_ts) {
+            return;
+        }
+
+        $quickRun->loadMissing('requests');
+        $requestCount = $quickRun->requests->count();
+        $requesterNames = $quickRun->requests->map(fn (QuickRunRequest $r) => "<@{$r->provider_user_id}>")->all();
+
+        $blocks = $this->blocks->quickRunBlocks($quickRun, $requestCount, $requesterNames);
+
+        $this->slack->updateMessage(
+            $quickRun->provider_channel_id,
+            $quickRun->provider_message_ts,
+            "Quick Run: {$quickRun->destination}",
+            $blocks
+        );
+    }
+
+    public function postQuickRunClosureSummary(QuickRun $quickRun): void
+    {
+        $quickRun->loadMissing('requests');
+
+        $totals = [];
+        foreach ($quickRun->requests as $request) {
+            $amount = $request->price_final !== null ? (float) $request->price_final : (float) ($request->price_estimated ?? 0);
+            $totals[$request->provider_user_id] = ($totals[$request->provider_user_id] ?? 0) + $amount;
+        }
+
+        $lines = [];
+        foreach ($totals as $userId => $amount) {
+            $lines[] = sprintf('- <@%s>: %.2f EUR', $userId, $amount);
+        }
+
+        $totalAmount = array_sum($totals);
+
+        if (empty($lines)) {
+            $lines[] = '- Aucun montant a afficher.';
+        }
+
+        $text = "*Quick Run cloture*\nDestination: {$quickRun->destination}\nRunner: <@{$quickRun->provider_user_id}>\n\nMontants dus au runner:\n".implode("\n", $lines);
+        $text .= sprintf("\n\n*Total: %.2f EUR*", $totalAmount);
+
+        $this->slack->postMessage(
+            $quickRun->provider_channel_id,
+            'Quick Run cloture',
+            [
+                [
+                    'type' => 'section',
+                    'text' => [
+                        'type' => 'mrkdwn',
+                        'text' => $text,
+                    ],
+                ],
+            ]
+        );
+    }
+
+    /**
+     * @param  Collection<int, QuickRun>  $quickRuns
+     */
+    public function notifyQuickRunsLocked(Collection $quickRuns): void
+    {
+        foreach ($quickRuns as $quickRun) {
+            if (! $quickRun->provider_message_ts) {
+                continue;
+            }
+
+            $this->updateQuickRunMessage($quickRun);
+
+            $this->slack->postMessage(
+                $quickRun->provider_channel_id,
+                'Quick Run verrouille.',
+                [
+                    [
+                        'type' => 'section',
+                        'text' => [
+                            'type' => 'mrkdwn',
+                            'text' => "*Quick Run verrouille.*\n<@{$quickRun->provider_user_id}>, les demandes sont figees. Consultez le recapitulatif.",
+                        ],
+                    ],
+                ]
+            );
+        }
     }
 
     public function postEphemeral(string $channelId, string $userId, string $message, ?string $threadTs = null): void

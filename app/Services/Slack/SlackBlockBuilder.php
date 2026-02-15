@@ -3,9 +3,12 @@
 namespace App\Services\Slack;
 
 use App\Enums\FulfillmentType;
+use App\Enums\QuickRunStatus;
 use App\Enums\SlackAction;
 use App\Models\LunchSession;
 use App\Models\Order;
+use App\Models\QuickRun;
+use App\Models\QuickRunRequest;
 use App\Models\Vendor;
 use App\Models\VendorProposal;
 
@@ -1045,6 +1048,375 @@ class SlackBlockBuilder
                     'element' => [
                         'type' => 'static_select',
                         'action_id' => 'order_id',
+                        'options' => $options,
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'price_final',
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Prix final',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'price_final',
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    public function quickRunCreateModal(string $channelId): array
+    {
+        return [
+            'type' => 'modal',
+            'callback_id' => SlackAction::CallbackQuickRunCreate->value,
+            'private_metadata' => json_encode(['channel_id' => $channelId], JSON_THROW_ON_ERROR),
+            'title' => [
+                'type' => 'plain_text',
+                'text' => 'Quick Run',
+            ],
+            'submit' => [
+                'type' => 'plain_text',
+                'text' => 'Lancer',
+            ],
+            'close' => [
+                'type' => 'plain_text',
+                'text' => 'Annuler',
+            ],
+            'blocks' => [
+                [
+                    'type' => 'input',
+                    'block_id' => 'destination',
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Ou allez-vous ?',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'destination',
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'Ex: Boulangerie du coin, Starbucks...',
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'delay',
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Delai (en minutes)',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'delay_minutes',
+                        'initial_value' => '10',
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => '10',
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'input',
+                    'block_id' => 'note',
+                    'optional' => true,
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Note (optionnel)',
+                    ],
+                    'element' => [
+                        'type' => 'plain_text_input',
+                        'action_id' => 'note',
+                        'multiline' => true,
+                        'placeholder' => [
+                            'type' => 'plain_text',
+                            'text' => 'Infos supplementaires...',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    public function quickRunRequestModal(QuickRun $quickRun, ?QuickRunRequest $existingRequest = null): array
+    {
+        $isEdit = $existingRequest !== null;
+
+        $blocks = [
+            [
+                'type' => 'context',
+                'elements' => [
+                    [
+                        'type' => 'mrkdwn',
+                        'text' => "*Quick Run :* {$quickRun->destination} par <@{$quickRun->provider_user_id}>",
+                    ],
+                ],
+            ],
+            [
+                'type' => 'input',
+                'block_id' => 'description',
+                'label' => [
+                    'type' => 'plain_text',
+                    'text' => 'Que voulez-vous ?',
+                ],
+                'element' => [
+                    'type' => 'plain_text_input',
+                    'action_id' => 'description',
+                    'initial_value' => $existingRequest?->description ?? '',
+                    'placeholder' => [
+                        'type' => 'plain_text',
+                        'text' => 'Ex: Un cafe latte, un croissant...',
+                    ],
+                ],
+            ],
+            [
+                'type' => 'input',
+                'block_id' => 'price_estimated',
+                'optional' => true,
+                'label' => [
+                    'type' => 'plain_text',
+                    'text' => 'Prix estime',
+                ],
+                'element' => [
+                    'type' => 'plain_text_input',
+                    'action_id' => 'price_estimated',
+                    'initial_value' => $existingRequest?->price_estimated ? (string) $existingRequest->price_estimated : '',
+                ],
+            ],
+        ];
+
+        if ($isEdit && $existingRequest) {
+            $blocks[] = ['type' => 'divider'];
+            $blocks[] = [
+                'type' => 'actions',
+                'block_id' => 'danger_zone',
+                'elements' => [
+                    [
+                        'type' => 'button',
+                        'text' => [
+                            'type' => 'plain_text',
+                            'text' => 'Supprimer ma demande',
+                        ],
+                        'action_id' => SlackAction::QuickRunDeleteRequest->value,
+                        'value' => (string) $existingRequest->id,
+                        'style' => 'danger',
+                        'confirm' => [
+                            'title' => [
+                                'type' => 'plain_text',
+                                'text' => 'Confirmer la suppression',
+                            ],
+                            'text' => [
+                                'type' => 'mrkdwn',
+                                'text' => 'Voulez-vous vraiment supprimer votre demande ?',
+                            ],
+                            'confirm' => [
+                                'type' => 'plain_text',
+                                'text' => 'Supprimer',
+                            ],
+                            'deny' => [
+                                'type' => 'plain_text',
+                                'text' => 'Annuler',
+                            ],
+                            'style' => 'danger',
+                        ],
+                    ],
+                ],
+            ];
+        }
+
+        $metadata = ['quick_run_id' => $quickRun->id];
+        if ($existingRequest) {
+            $metadata['request_id'] = $existingRequest->id;
+        }
+
+        return [
+            'type' => 'modal',
+            'callback_id' => $isEdit ? SlackAction::CallbackQuickRunRequestEdit->value : SlackAction::CallbackQuickRunRequestCreate->value,
+            'private_metadata' => json_encode($metadata, JSON_THROW_ON_ERROR),
+            'title' => [
+                'type' => 'plain_text',
+                'text' => $isEdit ? 'Modifier demande' : 'Ajouter une demande',
+            ],
+            'submit' => [
+                'type' => 'plain_text',
+                'text' => $isEdit ? 'Enregistrer' : 'Ajouter',
+            ],
+            'close' => [
+                'type' => 'plain_text',
+                'text' => 'Annuler',
+            ],
+            'blocks' => $blocks,
+        ];
+    }
+
+    public function quickRunBlocks(QuickRun $quickRun, int $requestCount, array $requesterNames = []): array
+    {
+        $deadline = $this->formatTime($quickRun->deadline_at);
+        $statusLabel = match ($quickRun->status) {
+            QuickRunStatus::Open => 'Ouvert',
+            QuickRunStatus::Locked => 'Verrouille',
+            QuickRunStatus::Closed => 'Cloture',
+        };
+
+        $text = "*Quick Run*\n<@{$quickRun->provider_user_id}> va chez *{$quickRun->destination}*\nDeadline: {$deadline} | Statut: {$statusLabel}";
+
+        if ($quickRun->note) {
+            $text .= "\n:memo: _{$quickRun->note}_";
+        }
+
+        $blocks = [
+            [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => $text,
+                ],
+            ],
+        ];
+
+        $requestersText = $requestCount > 0
+            ? "Demandes: {$requestCount}".(! empty($requesterNames) ? ' ('.implode(', ', $requesterNames).')' : '')
+            : 'Aucune demande pour le moment.';
+
+        $blocks[] = [
+            'type' => 'context',
+            'elements' => [
+                [
+                    'type' => 'mrkdwn',
+                    'text' => $requestersText,
+                ],
+            ],
+        ];
+
+        if ($quickRun->isOpen()) {
+            $blocks[] = [
+                'type' => 'actions',
+                'elements' => [
+                    $this->button('Ajouter une demande', SlackAction::QuickRunAddRequest->value, (string) $quickRun->id, 'primary'),
+                    $this->button('Je pars', SlackAction::QuickRunLock->value, (string) $quickRun->id, 'danger'),
+                ],
+            ];
+        } elseif ($quickRun->isLocked()) {
+            $blocks[] = [
+                'type' => 'actions',
+                'elements' => [
+                    $this->button('Recapitulatif', SlackAction::QuickRunRecap->value, (string) $quickRun->id),
+                    $this->button('Ajuster prix', SlackAction::QuickRunAdjustPrices->value, (string) $quickRun->id),
+                    $this->button('Cloturer', SlackAction::QuickRunClose->value, (string) $quickRun->id, 'danger'),
+                ],
+            ];
+        }
+
+        return $blocks;
+    }
+
+    public function quickRunRecapModal(QuickRun $quickRun, array $requests, array $totals): array
+    {
+        $blocks = [
+            [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => "*Recapitulatif Quick Run*\nDestination: {$quickRun->destination}",
+                ],
+            ],
+            ['type' => 'divider'],
+        ];
+
+        if (empty($requests)) {
+            $blocks[] = [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => '_Aucune demande._',
+                ],
+            ];
+        } else {
+            foreach ($requests as $request) {
+                $priceEstimated = $this->formatPrice($request->price_estimated !== null ? (float) $request->price_estimated : null);
+                $priceFinal = $this->formatPrice($request->price_final !== null ? (float) $request->price_final : null);
+
+                $blocks[] = [
+                    'type' => 'section',
+                    'text' => [
+                        'type' => 'mrkdwn',
+                        'text' => "<@{$request->provider_user_id}>\n_{$request->description}_\nEstime: {$priceEstimated} | Final: {$priceFinal}",
+                    ],
+                ];
+            }
+        }
+
+        $blocks[] = ['type' => 'divider'];
+        $blocks[] = [
+            'type' => 'section',
+            'text' => [
+                'type' => 'mrkdwn',
+                'text' => "*Total estime:* {$totals['estimated']} EUR\n*Total final:* {$totals['final']} EUR",
+            ],
+        ];
+
+        return [
+            'type' => 'modal',
+            'title' => [
+                'type' => 'plain_text',
+                'text' => 'Recap Quick Run',
+            ],
+            'close' => [
+                'type' => 'plain_text',
+                'text' => 'Fermer',
+            ],
+            'blocks' => $blocks,
+        ];
+    }
+
+    public function quickRunAdjustPricesModal(QuickRun $quickRun, array $requests): array
+    {
+        $options = array_map(function (QuickRunRequest $request) {
+            $label = $request->description;
+            if (strlen($label) > 50) {
+                $label = substr($label, 0, 47).'...';
+            }
+            $text = "<@{$request->provider_user_id}> - {$label}";
+
+            return [
+                'text' => [
+                    'type' => 'plain_text',
+                    'text' => $text,
+                ],
+                'value' => (string) $request->id,
+            ];
+        }, $requests);
+
+        return [
+            'type' => 'modal',
+            'callback_id' => SlackAction::CallbackQuickRunClose->value,
+            'private_metadata' => json_encode(['quick_run_id' => $quickRun->id], JSON_THROW_ON_ERROR),
+            'title' => [
+                'type' => 'plain_text',
+                'text' => 'Ajuster et cloturer',
+            ],
+            'submit' => [
+                'type' => 'plain_text',
+                'text' => 'Cloturer',
+            ],
+            'close' => [
+                'type' => 'plain_text',
+                'text' => 'Annuler',
+            ],
+            'blocks' => [
+                [
+                    'type' => 'input',
+                    'block_id' => 'request',
+                    'label' => [
+                        'type' => 'plain_text',
+                        'text' => 'Demande',
+                    ],
+                    'element' => [
+                        'type' => 'static_select',
+                        'action_id' => 'request_id',
                         'options' => $options,
                     ],
                 ],

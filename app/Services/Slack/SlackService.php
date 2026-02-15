@@ -115,7 +115,16 @@ class SlackService
             return null;
         }
 
-        $response = Http::withToken($token)->get($urlPrivate);
+        $response = Http::withToken($token)
+            ->timeout(10)
+            ->retry(3, 1000, function (\Exception $exception) {
+                if ($exception instanceof \Illuminate\Http\Client\RequestException) {
+                    return $exception->response?->status() === 429;
+                }
+
+                return $exception instanceof \Illuminate\Http\Client\ConnectionException;
+            }, throw: false)
+            ->get($urlPrivate);
 
         if (! $response->ok()) {
             Log::error('Slack file download failed.', [
