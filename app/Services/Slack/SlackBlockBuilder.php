@@ -1307,6 +1307,30 @@ class SlackBlockBuilder
                 'type' => 'actions',
                 'elements' => [
                     $this->button('Ajouter une demande', SlackAction::QuickRunAddRequest->value, (string) $quickRun->id, 'primary'),
+                ],
+            ];
+        }
+
+        return $blocks;
+    }
+
+    public function quickRunRunnerBlocks(QuickRun $quickRun): array
+    {
+        $blocks = [
+            [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => ':gear: *Gestion Quick Run* — _actions reservees au runner_',
+                ],
+            ],
+        ];
+
+        if ($quickRun->isOpen()) {
+            $blocks[] = [
+                'type' => 'actions',
+                'elements' => [
+                    $this->button('Recapitulatif', SlackAction::QuickRunRecap->value, (string) $quickRun->id),
                     $this->button('Je pars', SlackAction::QuickRunLock->value, (string) $quickRun->id, 'danger'),
                 ],
             ];

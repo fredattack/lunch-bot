@@ -10,6 +10,7 @@ use App\Models\QuickRun;
 use App\Models\QuickRunRequest;
 use App\Models\VendorProposal;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class SlackMessenger
 {
@@ -98,7 +99,34 @@ class SlackMessenger
         if ($response['ok'] ?? false) {
             $proposal->provider_message_ts = $response['ts'] ?? null;
             $proposal->save();
+        } else {
+            Log::warning('Failed to post proposal message.', [
+                'channel' => $proposal->lunchSession->provider_channel_id,
+                'error' => $response['error'] ?? 'unknown',
+            ]);
         }
+    }
+
+    public function notifyProposalCreator(VendorProposal $proposal, Order $order): void
+    {
+        if (! $proposal->provider_message_ts) {
+            return;
+        }
+
+        if ($order->provider_user_id === $proposal->created_by_provider_user_id) {
+            return;
+        }
+
+        $proposal->loadMissing('lunchSession');
+
+        $message = "<@{$order->provider_user_id}> a commandé.";
+
+        $this->slack->postMessage(
+            $proposal->lunchSession->provider_channel_id,
+            $message,
+            [],
+            $proposal->provider_message_ts
+        );
     }
 
     public function updateProposalMessage(VendorProposal $proposal): void
@@ -251,7 +279,25 @@ class SlackMessenger
         if ($response['ok'] ?? false) {
             $quickRun->provider_message_ts = $response['ts'] ?? null;
             $quickRun->save();
+        } else {
+            Log::warning('Failed to post Quick Run message.', [
+                'channel' => $quickRun->provider_channel_id,
+                'error' => $response['error'] ?? 'unknown',
+            ]);
         }
+    }
+
+    public function postQuickRunRunnerActions(QuickRun $quickRun): void
+    {
+        $blocks = $this->blocks->quickRunRunnerBlocks($quickRun);
+
+        $this->slack->postEphemeral(
+            $quickRun->provider_channel_id,
+            $quickRun->provider_user_id,
+            'Actions runner',
+            $blocks,
+            $quickRun->provider_message_ts
+        );
     }
 
     public function updateQuickRunMessage(QuickRun $quickRun): void
@@ -271,6 +317,26 @@ class SlackMessenger
             $quickRun->provider_message_ts,
             "Quick Run: {$quickRun->destination}",
             $blocks
+        );
+    }
+
+    public function notifyQuickRunRunner(QuickRun $quickRun, QuickRunRequest $request): void
+    {
+        if (! $quickRun->provider_message_ts) {
+            return;
+        }
+
+        if ($request->provider_user_id === $quickRun->provider_user_id) {
+            return;
+        }
+
+        $message = "<@{$request->provider_user_id}> a ajouté une demande.";
+
+        $this->slack->postMessage(
+            $quickRun->provider_channel_id,
+            $message,
+            [],
+            $quickRun->provider_message_ts
         );
     }
 

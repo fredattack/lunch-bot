@@ -71,7 +71,7 @@ class OrderInteractionHandler extends BaseInteractionHandler
         if ($existingOrder) {
             $this->updateOrder->handle($existingOrder, $data, $userId);
         } else {
-            $this->createOrder->handle($proposal, $userId, $data);
+            $order = $this->createOrder->handle($proposal, $userId, $data);
         }
 
         if ($isFirstOrderForProposal && ! $existingOrder) {
@@ -82,6 +82,8 @@ class OrderInteractionHandler extends BaseInteractionHandler
                 ->exists();
 
             $this->messenger->postOrderCreatedMessage($proposal, $userId, $hasOtherOrderInSession);
+        } elseif (! $existingOrder && isset($order)) {
+            $this->messenger->notifyProposalCreator($proposal, $order);
         }
 
         $this->postOptionalFeedback($payload, $userId, 'Commande enregistree.');

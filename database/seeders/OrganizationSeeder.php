@@ -13,12 +13,12 @@ class OrganizationSeeder extends Seeder
         $organization = Organization::updateOrCreate(
             [
                 'provider' => 'slack',
-                'provider_team_id' => 'T7P5TRP4H',
+                'provider_team_id' => config('slack.team_id', 'T0AFH2Q89TK'),
             ],
             [
-                'name' => 'Hexeko',
+                'name' => config('app.name', 'Lunch Bot'),
                 'settings' => [
-                    'timezone' => 'Europe/Paris',
+                    'timezone' => config('lunch.timezone', 'Europe/Paris'),
                 ],
             ]
         );
@@ -28,8 +28,8 @@ class OrganizationSeeder extends Seeder
             [
                 'bot_token' => config('slack.bot_token'),
                 'signing_secret' => config('slack.signing_secret'),
-                'installed_by_provider_user_id' => 'U08E9Q2KJGY',
-                'default_channel_id' => 'C0A9GLJ67JQ',
+                'installed_by_provider_user_id' => config('slack.admin_user_ids.0'),
+                'default_channel_id' => config('lunch.channel_id'),
                 'scopes' => [
                     'chat:write',
                     'chat:write.public',

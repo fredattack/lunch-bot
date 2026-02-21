@@ -10,10 +10,10 @@ class VendorSeeder extends Seeder
 {
     public function run(): void
     {
-        $organization = Organization::where('provider_team_id', 'T7P5TRP4H')->first();
+        $organization = Organization::where('provider_team_id', config('slack.team_id'))->first();
 
         if (! $organization) {
-            $this->command->warn('Organization T7P5TRP4H not found. Run OrganizationSeeder first.');
+            $this->command->warn('Organization not found. Run OrganizationSeeder first.');
 
             return;
         }
@@ -31,7 +31,7 @@ class VendorSeeder extends Seeder
                 'url_menu' => null,
                 'notes' => null,
                 'active' => true,
-                'created_by_provider_user_id' => 'U08E9Q2KJGY',
+                'created_by_provider_user_id' => config('slack.admin_user_ids.0', 'UNKNOWN'),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -45,7 +45,7 @@ class VendorSeeder extends Seeder
                 'url_menu' => null,
                 'notes' => null,
                 'active' => true,
-                'created_by_provider_user_id' => 'U08E9Q2KJGY',
+                'created_by_provider_user_id' => config('slack.admin_user_ids.0', 'UNKNOWN'),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -59,7 +59,7 @@ class VendorSeeder extends Seeder
                 'url_menu' => null,
                 'notes' => null,
                 'active' => true,
-                'created_by_provider_user_id' => 'U08E9Q2KJGY',
+                'created_by_provider_user_id' => config('slack.admin_user_ids.0', 'UNKNOWN'),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

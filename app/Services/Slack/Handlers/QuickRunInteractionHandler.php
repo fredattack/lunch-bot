@@ -73,6 +73,7 @@ class QuickRunInteractionHandler extends BaseInteractionHandler
         ]);
 
         $this->messenger->postQuickRun($quickRun);
+        $this->messenger->postQuickRunRunnerActions($quickRun);
 
         return response('', 200);
     }
@@ -94,12 +95,13 @@ class QuickRunInteractionHandler extends BaseInteractionHandler
             return $this->viewErrorResponse(['description' => 'Description requise.']);
         }
 
-        $this->addRequest->handle($quickRun, $userId, [
+        $request = $this->addRequest->handle($quickRun, $userId, [
             'description' => $description,
             'price_estimated' => $priceEstimated,
         ]);
 
         $this->messenger->updateQuickRunMessage($quickRun);
+        $this->messenger->notifyQuickRunRunner($quickRun, $request);
 
         return response('', 200);
     }
@@ -230,7 +232,7 @@ class QuickRunInteractionHandler extends BaseInteractionHandler
         try {
             $this->lockQuickRun->handle($quickRun, $userId);
             $this->messenger->updateQuickRunMessage($quickRun);
-            $this->messenger->postEphemeral($channelId, $userId, 'Quick Run verrouille. Les demandes sont figees.');
+            $this->messenger->postQuickRunRunnerActions($quickRun);
         } catch (\InvalidArgumentException $e) {
             $this->messenger->postEphemeral($channelId, $userId, $e->getMessage());
         }
