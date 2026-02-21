@@ -22,6 +22,7 @@
 13. [Cas limites & erreurs](#13-cas-limites--erreurs)
 14. [Scenarios end-to-end critiques](#14-scenarios-end-to-end)
 15. [Couverture existante vs. manquante](#15-couverture-existante-vs-manquante)
+16. [Roadmap de Test E2E Playwright](#16-roadmap-de-test-e2e-playwright)
 
 ---
 
@@ -974,4 +975,272 @@ isProposal()  → OpenProposalModal, DashboardStartFromCatalog, DashboardRelaunc
                 ProposalSetStatus, ClaimRunner, ClaimOrderer, OpenDelegateModal,
                 OpenAdjustPriceModal, OpenSummary, DashboardClaimResponsible, DashboardViewOrders
 isCallback()  → proposal_*, order_*, lunch_*, enseigne_*, restaurant_*, role_*, quickrun_*
+```
+
+---
+
+## 16. Roadmap de Test E2E Playwright
+
+### 16.1 Vue d'ensemble
+
+Tests End-to-End via **Playwright** connectes directement au **Workspace Slack de test**. Chaque test se connecte a Slack, navigue dans le channel lunch, interagit avec les boutons du bot et verifie les reponses (messages, modals, ephemeral).
+
+### 16.2 Configuration & Variables d'environnement
+
+Toutes les variables sont dans `.env` :
+
+```env
+# Slack Test Workspace
+SLACK_WORKSPACE_URL=https://your-workspace.slack.com
+SLACK_TEST_CHANNEL_NAME=lunch-test
+
+# User de test A (runner/createur principal)
+SLACK_TEST_USER_A_EMAIL=test-user-a@example.com
+SLACK_TEST_USER_A_PASSWORD=password-a
+SLACK_TEST_USER_A_ID=UXXXXXXA
+
+# User de test B (participant)
+SLACK_TEST_USER_B_EMAIL=test-user-b@example.com
+SLACK_TEST_USER_B_PASSWORD=password-b
+SLACK_TEST_USER_B_ID=UXXXXXXB
+
+# User de test Admin
+SLACK_TEST_ADMIN_EMAIL=test-admin@example.com
+SLACK_TEST_ADMIN_PASSWORD=password-admin
+SLACK_TEST_ADMIN_ID=UXXXXXXADMIN
+
+# App Backend
+APP_BASE_URL=http://localhost:8000
+```
+
+### 16.3 Architecture des tests Playwright
+
+```
+e2e/
+├── playwright.config.ts
+├── fixtures/
+│   ├── slack-auth.ts          # Fixture d'authentification Slack
+│   ├── slack-page.ts          # Page Object pour l'interface Slack
+│   └── test-data.ts           # Donnees de test (vendors, prix, etc.)
+├── helpers/
+│   ├── slack-selectors.ts     # Selecteurs CSS/data-* pour Slack
+│   ├── slack-actions.ts       # Actions reutilisables (clic bouton, remplir modal)
+│   ├── slack-assertions.ts    # Assertions custom (message visible, modal ouverte)
+│   └── api-helpers.ts         # Reset DB, seed data via API/CLI
+├── tests/
+│   ├── phase-1-session/
+│   │   ├── 01-dashboard-open.spec.ts
+│   │   ├── 02-session-create.spec.ts
+│   │   ├── 03-session-lock.spec.ts
+│   │   └── 04-session-close.spec.ts
+│   ├── phase-2-proposal/
+│   │   ├── 01-propose-from-catalog.spec.ts
+│   │   ├── 02-propose-new-restaurant.spec.ts
+│   │   ├── 03-claim-role.spec.ts
+│   │   ├── 04-delegate-role.spec.ts
+│   │   └── 05-close-proposal.spec.ts
+│   ├── phase-3-order/
+│   │   ├── 01-create-order.spec.ts
+│   │   ├── 02-edit-order.spec.ts
+│   │   ├── 03-delete-order.spec.ts
+│   │   ├── 04-adjust-price.spec.ts
+│   │   └── 05-order-validation.spec.ts
+│   ├── phase-4-quickrun/
+│   │   ├── 01-create-quickrun.spec.ts
+│   │   ├── 02-add-request.spec.ts
+│   │   ├── 03-edit-delete-request.spec.ts
+│   │   ├── 04-lock-quickrun.spec.ts
+│   │   └── 05-close-quickrun.spec.ts
+│   ├── phase-5-vendor/
+│   │   ├── 01-create-vendor.spec.ts
+│   │   ├── 02-edit-vendor.spec.ts
+│   │   ├── 03-vendor-list-search.spec.ts
+│   │   └── 04-vendor-deactivate.spec.ts
+│   ├── phase-6-permissions/
+│   │   ├── 01-admin-bypass-lock.spec.ts
+│   │   ├── 02-role-restrictions.spec.ts
+│   │   ├── 03-owner-only-vendor-edit.spec.ts
+│   │   └── 04-session-close-permissions.spec.ts
+│   ├── phase-7-dashboard-states/
+│   │   ├── 01-state-s1-no-proposal.spec.ts
+│   │   ├── 02-state-s2-open-proposals.spec.ts
+│   │   ├── 03-state-s3-has-order.spec.ts
+│   │   ├── 04-state-s4-in-charge.spec.ts
+│   │   ├── 05-state-s5-all-closed.spec.ts
+│   │   ├── 06-state-s6-history.spec.ts
+│   │   └── 07-state-transitions.spec.ts
+│   ├── phase-8-edge-cases/
+│   │   ├── 01-locked-session-actions.spec.ts
+│   │   ├── 02-duplicate-vendor-proposal.spec.ts
+│   │   ├── 03-order-upsert-existing.spec.ts
+│   │   ├── 04-empty-catalog-fallback.spec.ts
+│   │   ├── 05-validation-errors.spec.ts
+│   │   └── 06-session-close-cascades.spec.ts
+│   └── phase-9-full-lifecycle/
+│       ├── 01-happy-path-group-order.spec.ts
+│       ├── 02-happy-path-quickrun.spec.ts
+│       ├── 03-multi-proposal-session.spec.ts
+│       └── 04-multi-user-concurrent.spec.ts
+└── auth/
+    ├── user-a.json              # Session storage persistee
+    ├── user-b.json
+    └── admin.json
+```
+
+### 16.4 Roadmap detaillee
+
+---
+
+#### PHASE 1 : Session Lifecycle (4 tests)
+
+| # | Test | Fichier | Ref manifeste | Statut |
+|---|------|---------|--------------|--------|
+| E2E-1.1 | Ouvrir le dashboard `/lunch` — Verifier etat S1 (aucune proposition) | `phase-1-session/01-dashboard-open.spec.ts` | T5.1, S1 | 🟢 Ecrit |
+| E2E-1.2 | Creer une session — Le bot poste le message de kickoff dans le channel | `phase-1-session/02-session-create.spec.ts` | T3.1.2 | 🟢 Ecrit |
+| E2E-1.3 | Verrouillage automatique — Creer session avec deadline courte, attendre, verifier Locked | `phase-1-session/03-session-lock.spec.ts` | T3.1.1, T11.1 | 🟢 Ecrit |
+| E2E-1.4 | Cloturer session — Clic bouton "Cloturer la journee", verifier statut Closed + message recap | `phase-1-session/04-session-close.spec.ts` | T3.1.2, T3.1.8 | 🟢 Ecrit |
+
+---
+
+#### PHASE 2 : Proposal Flow (5 tests)
+
+| # | Test | Fichier | Ref manifeste | Statut |
+|---|------|---------|--------------|--------|
+| E2E-2.1 | Proposer un restaurant existant — Selectionner vendor, fulfillment Pickup, valider → modal commande | `phase-2-proposal/01-propose-from-catalog.spec.ts` | T7.1.1, T7.1.2, T7.1.8 | 🟢 Ecrit |
+| E2E-2.2 | Proposer un nouveau restaurant — Saisir nom, types livraison, valider → vendor cree + modal commande | `phase-2-proposal/02-propose-new-restaurant.spec.ts` | T7.2.3, T7.2.6 | 🟢 Ecrit |
+| E2E-2.3 | Reclamer un role — User B clic "Je suis runner" / "Prendre en charge" → role assigne, message maj | `phase-2-proposal/03-claim-role.spec.ts` | T4.1, T4.2 | 🟢 Ecrit |
+| E2E-2.4 | Deleguer un role — Runner ouvre modal delegation, selectionne user B, valider → role transfere | `phase-2-proposal/04-delegate-role.spec.ts` | T7.3.1, T7.3.3, T7.3.4 | 🟢 Ecrit |
+| E2E-2.5 | Cloturer une proposition — Runner clic "Cloturer" → statut Closed, message mis a jour | `phase-2-proposal/05-close-proposal.spec.ts` | T7.4.1, T7.4.4 | 🟢 Ecrit |
+
+---
+
+#### PHASE 3 : Order Flow (5 tests)
+
+| # | Test | Fichier | Ref manifeste | Statut |
+|---|------|---------|--------------|--------|
+| E2E-3.1 | Creer une commande — Ouvrir modal, saisir description + prix, valider → commande creee + message thread | `phase-3-order/01-create-order.spec.ts` | T6.1.1, T6.1.7 | 🟢 Ecrit |
+| E2E-3.2 | Modifier sa commande — Clic "Modifier", changer description, valider → commande mise a jour | `phase-3-order/02-edit-order.spec.ts` | T6.2.1, T6.2.6 | 🟢 Ecrit |
+| E2E-3.3 | Supprimer sa commande — Clic "Supprimer", confirmer → commande supprimee + ephemeral | `phase-3-order/03-delete-order.spec.ts` | T6.3.1, T6.3.3, T6.3.4 | 🟢 Ecrit |
+| E2E-3.4 | Ajuster prix final — Runner ouvre modal prix, selectionne commande, saisit prix final → maj | `phase-3-order/04-adjust-price.spec.ts` | T6.4.1 | 🟢 Ecrit |
+| E2E-3.5 | Validation commande — Description vide, prix invalide, prix virgule → erreurs modales correctes | `phase-3-order/05-order-validation.spec.ts` | T6.1.3, T6.1.4, T6.1.5, T8.1, T8.2 | 🟢 Ecrit |
+
+---
+
+#### PHASE 4 : Quick Run (5 tests)
+
+| # | Test | Fichier | Ref manifeste | Statut |
+|---|------|---------|--------------|--------|
+| E2E-4.1 | Creer un Quick Run — Ouvrir modal, saisir destination + delai, valider → message poste | `phase-4-quickrun/01-create-quickrun.spec.ts` | T9.1 | 🟢 Ecrit |
+| E2E-4.2 | Ajouter une demande — User B clic "Ajouter", saisit description + prix → demande ajoutee | `phase-4-quickrun/02-add-request.spec.ts` | T9.5 | 🟢 Ecrit |
+| E2E-4.3 | Editer / Supprimer demande — Modifier sa demande, supprimer → messages mis a jour | `phase-4-quickrun/03-edit-delete-request.spec.ts` | T9.7, T9.8 | 🟢 Ecrit |
+| E2E-4.4 | Verrouiller Quick Run — Runner clic "Verrouiller" → plus d'ajouts possibles | `phase-4-quickrun/04-lock-quickrun.spec.ts` | T9.10, T9.12 | 🟢 Ecrit |
+| E2E-4.5 | Cloturer Quick Run — Runner clic "Cloturer", ajuste prix → recap poste | `phase-4-quickrun/05-close-quickrun.spec.ts` | T9.13, T9.15, T9.17 | 🟢 Ecrit |
+
+---
+
+#### PHASE 5 : Vendor Management (4 tests)
+
+| # | Test | Fichier | Ref manifeste | Statut |
+|---|------|---------|--------------|--------|
+| E2E-5.1 | Creer un restaurant — Ouvrir modal "Ajouter enseigne", remplir, valider → vendor cree | `phase-5-vendor/01-create-vendor.spec.ts` | T10.1, T10.2 | 🟢 Ecrit |
+| E2E-5.2 | Modifier un restaurant — Ouvrir modal edition, modifier nom/type, valider → vendor maj | `phase-5-vendor/02-edit-vendor.spec.ts` | T10.3 | 🟢 Ecrit |
+| E2E-5.3 | Rechercher dans la liste — Ouvrir liste, taper dans le champ recherche → filtrage en temps reel | `phase-5-vendor/03-vendor-list-search.spec.ts` | T10.10 | 🟢 Ecrit |
+| E2E-5.4 | Desactiver un restaurant — Modifier vendor, cocher inactif → n'apparait plus dans le catalogue | `phase-5-vendor/04-vendor-deactivate.spec.ts` | T10.6, T10.7 | 🟢 Ecrit |
+
+---
+
+#### PHASE 6 : Permissions & Roles (4 tests)
+
+| # | Test | Fichier | Ref manifeste | Statut |
+|---|------|---------|--------------|--------|
+| E2E-6.1 | Admin bypass lock — Session locked, admin commande quand meme → succes | `phase-6-permissions/01-admin-bypass-lock.spec.ts` | T4.8, T3.1.7 | 🟢 Ecrit |
+| E2E-6.2 | Restrictions de role — Non-runner tente cloturer/ajuster prix → message refuse | `phase-6-permissions/02-role-restrictions.spec.ts` | T4.7, T6.4.2 | 🟢 Ecrit |
+| E2E-6.3 | Vendor owner only — User B tente modifier vendor de User A → refuse | `phase-6-permissions/03-owner-only-vendor-edit.spec.ts` | T10.4 | 🟢 Ecrit |
+| E2E-6.4 | Permission cloture session — User normal tente cloturer session sans etre runner/orderer → refuse | `phase-6-permissions/04-session-close-permissions.spec.ts` | T3.1.6 | 🟢 Ecrit |
+
+---
+
+#### PHASE 7 : Dashboard States (7 tests)
+
+| # | Test | Fichier | Ref manifeste | Statut |
+|---|------|---------|--------------|--------|
+| E2E-7.1 | Etat S1 — Dashboard sans proposition, boutons "Demarrer" et "Proposer" visibles | `phase-7-dashboard-states/01-state-s1-no-proposal.spec.ts` | T5.1, S1 UI | 🟢 Ecrit |
+| E2E-7.2 | Etat S2 — Propositions ouvertes, boutons "Commander ici" visibles pour user sans commande | `phase-7-dashboard-states/02-state-s2-open-proposals.spec.ts` | T5.2, S2 UI | 🟢 Ecrit |
+| E2E-7.3 | Etat S3 — User a une commande, details affiches, boutons "Modifier" / "Supprimer" | `phase-7-dashboard-states/03-state-s3-has-order.spec.ts` | T5.3, S3 UI | 🟢 Ecrit |
+| E2E-7.4 | Etat S4 — User est runner/orderer, boutons "Recap" / "Cloturer" visibles | `phase-7-dashboard-states/04-state-s4-in-charge.spec.ts` | T5.4, S4 UI | 🟢 Ecrit |
+| E2E-7.5 | Etat S5 — Toutes propositions fermees, bouton "Relancer" visible | `phase-7-dashboard-states/05-state-s5-all-closed.spec.ts` | T5.5, S5 UI | 🟢 Ecrit |
+| E2E-7.6 | Etat S6 — Session d'hier, vue lecture seule, aucun bouton d'action | `phase-7-dashboard-states/06-state-s6-history.spec.ts` | T5.6, T5.10, S6 UI | 🟢 Ecrit |
+| E2E-7.7 | Transitions d'etat — S1→S3 (creer commande), S3→S2 (supprimer commande), S2→S4 (reclamer role) | `phase-7-dashboard-states/07-state-transitions.spec.ts` | T5.8, T5.9 | 🟢 Ecrit |
+
+---
+
+#### PHASE 8 : Edge Cases & Erreurs (6 tests)
+
+| # | Test | Fichier | Ref manifeste | Statut |
+|---|------|---------|--------------|--------|
+| E2E-8.1 | Session locked → commande refusee — User normal clic "Commander" sur session locked → ephemeral refuse | `phase-8-edge-cases/01-locked-session-actions.spec.ts` | T3.1.6, T6.1.9, T6.2.3 | 🟢 Ecrit |
+| E2E-8.2 | Doublon vendor — User A propose Pizza Place, User B propose Pizza Place → erreur doublon | `phase-8-edge-cases/02-duplicate-vendor-proposal.spec.ts` | T7.1.7, 14.5 | 🟢 Ecrit |
+| E2E-8.3 | Commande existante → upsert — User commande 2x sur meme proposition → mise a jour au lieu de doublons | `phase-8-edge-cases/03-order-upsert-existing.spec.ts` | T6.1.6, 14.7 | 🟢 Ecrit |
+| E2E-8.4 | Catalogue vide → fallback — Aucun vendor actif, clic "Demarrer" → modal nouveau restaurant | `phase-8-edge-cases/04-empty-catalog-fallback.spec.ts` | 14.6 | 🟢 Ecrit |
+| E2E-8.5 | Erreurs de validation — Description vide, prix invalide, destination vide, delai hors limites | `phase-8-edge-cases/05-validation-errors.spec.ts` | T13.3, tous T6.1.3/4, T9.2/3/4 | 🟢 Ecrit |
+| E2E-8.6 | Cloture session cascade — Fermer session avec 3 propositions → toutes passent Closed | `phase-8-edge-cases/06-session-close-cascades.spec.ts` | T3.1.8, 14.8 | 🟢 Ecrit |
+
+---
+
+#### PHASE 9 : Full Lifecycle (4 tests)
+
+| # | Test | Fichier | Ref manifeste | Statut |
+|---|------|---------|--------------|--------|
+| E2E-9.1 | Happy path complet — Session → Proposal → 2 commandes → recap → ajust prix → cloture | `phase-9-full-lifecycle/01-happy-path-group-order.spec.ts` | 14.1 | 🟢 Ecrit |
+| E2E-9.2 | Happy path Quick Run — Creation → demandes → lock → ajust prix → cloture → recap | `phase-9-full-lifecycle/02-happy-path-quickrun.spec.ts` | 14.2 | 🟢 Ecrit |
+| E2E-9.3 | Multi-proposals — Session avec 3 propositions (vendors differents), commandes croisees, clotures independantes | `phase-9-full-lifecycle/03-multi-proposal-session.spec.ts` | 14.8 | 🟢 Ecrit |
+| E2E-9.4 | Multi-users concurrent — User A et B agissent en parallele (commandes, roles), verifier coherence | `phase-9-full-lifecycle/04-multi-user-concurrent.spec.ts` | 14.3 | 🟢 Ecrit |
+
+---
+
+### 16.5 Couverture totale de la roadmap
+
+| Phase | Tests | Refs manifeste couverts |
+|-------|-------|------------------------|
+| Phase 1 : Session | 4 | T3.1.1–T3.1.8, T5.1, T11.1 |
+| Phase 2 : Proposal | 5 | T4.1–T4.2, T7.1.1–T7.1.8, T7.2.3–T7.2.6, T7.3.1–T7.3.4, T7.4.1–T7.4.4 |
+| Phase 3 : Order | 5 | T6.1.1–T6.1.10, T6.2.1–T6.2.6, T6.3.1–T6.3.4, T6.4.1–T6.4.5, T8.1–T8.2 |
+| Phase 4 : Quick Run | 5 | T9.1–T9.17 |
+| Phase 5 : Vendor | 4 | T10.1–T10.7, T10.10 |
+| Phase 6 : Permissions | 4 | T4.7–T4.9, T3.1.6–T3.1.7, T6.4.2, T10.4 |
+| Phase 7 : Dashboard | 7 | T5.1–T5.10, tous etats S1–S6 |
+| Phase 8 : Edge Cases | 6 | T13.1–T13.6, T6.1.3–T6.1.6, T7.1.7, scenarios 14.5–14.8 |
+| Phase 9 : Lifecycle | 4 | Scenarios 14.1–14.4 |
+| **TOTAL** | **44 tests** | **100% du manifeste** |
+
+### 16.6 Suivi de progression
+
+| Phase | A faire | En cours | Ecrit | Total |
+|-------|---------|----------|-------|-------|
+| Phase 1 : Session | 0 | 0 | 4 | 4 |
+| Phase 2 : Proposal | 0 | 0 | 5 | 5 |
+| Phase 3 : Order | 0 | 0 | 5 | 5 |
+| Phase 4 : Quick Run | 0 | 0 | 5 | 5 |
+| Phase 5 : Vendor | 0 | 0 | 4 | 4 |
+| Phase 6 : Permissions | 0 | 0 | 4 | 4 |
+| Phase 7 : Dashboard | 0 | 0 | 7 | 7 |
+| Phase 8 : Edge Cases | 0 | 0 | 6 | 6 |
+| Phase 9 : Lifecycle | 0 | 0 | 4 | 4 |
+| **TOTAL** | **0** | **0** | **44** | **44** |
+
+### 16.7 Pre-requis avant chaque phase
+
+Chaque fichier de test doit :
+1. **Reset la base de donnees** via un helper API/CLI (`php artisan migrate:fresh --seed`) avant la suite
+2. **S'authentifier sur Slack** via le fixture `slack-auth.ts` (session persistee dans `auth/`)
+3. **Naviguer vers le channel de test** (`SLACK_TEST_CHANNEL_NAME`)
+4. **Creer les donnees de test necessaires** (vendors, sessions, etc.) via `api-helpers.ts`
+
+### 16.8 Conventions de nommage
+
+```typescript
+// Nom du test : action_contexte_resultat_attendu
+test('should create order with description and price', async ({ slackPage }) => { ... });
+test('should reject order when session is locked for regular user', async ({ slackPage }) => { ... });
+test('should transition dashboard from S1 to S3 after placing order', async ({ slackPage }) => { ... });
 ```
