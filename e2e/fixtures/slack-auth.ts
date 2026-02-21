@@ -49,6 +49,16 @@ setup('authenticate user B', async ({ page }) => {
   );
 });
 
+setup('authenticate user C', async ({ page }) => {
+  await loginToSlack(
+    page,
+    process.env.SLACK_TEST_USER_C_EMAIL!,
+    process.env.SLACK_TEST_USER_C_PASSWORD!,
+    path.join(AUTH_DIR, 'user-c.json'),
+    process.env.SLACK_WORKSPACE_URL!
+  );
+});
+
 setup('authenticate admin', async ({ page }) => {
   await loginToSlack(
     page,

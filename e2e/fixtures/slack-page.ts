@@ -11,7 +11,8 @@ const AUTH_DIR = path.resolve(__dirname, '../auth');
 export class SlackPage {
   constructor(
     public readonly page: Page,
-    public readonly channelName: string
+    public readonly channelName: string,
+    public readonly userId?: string
   ) {}
 
   // ── Navigation ─────────────────────────────────────────────
@@ -84,6 +85,24 @@ export class SlackPage {
       .first();
     await btn.waitFor({ timeout: 10_000 });
     await btn.click();
+  }
+
+  async isButtonVisible(buttonText: string, parentText?: string, timeout = 5_000): Promise<boolean> {
+    let scope = this.page;
+    if (parentText) {
+      const parent = this.page
+        .locator(SlackSelectors.messageContaining(parentText))
+        .first();
+      if (!(await parent.isVisible({ timeout: 3_000 }).catch(() => false))) {
+        return false;
+      }
+      scope = parent as any;
+    }
+    return (scope as any)
+      .locator(SlackSelectors.button(buttonText))
+      .first()
+      .isVisible({ timeout })
+      .catch(() => false);
   }
 
   // ── Slash commands ─────────────────────────────────────────
@@ -163,6 +182,17 @@ export class SlackPage {
       .catch(() => false);
   }
 
+  async getModalContent(): Promise<string> {
+    const modal = this.page.locator('[data-qa="modal"], .p-block_kit_modal');
+    await modal.waitFor({ timeout: 10_000 });
+    return modal.innerText();
+  }
+
+  async dismissModal(): Promise<void> {
+    await this.page.keyboard.press('Escape');
+    await this.wait(500);
+  }
+
   // ── Ephemeral messages ─────────────────────────────────────
 
   async waitForEphemeral(text: string, timeout = 10_000): Promise<void> {
@@ -230,53 +260,73 @@ export class SlackPage {
   }
 }
 
-// ── Playwright fixture with multi-user support ────────────────
+// ── Helper to create a SlackPage from a storage state ──────────
+
+async function createSlackPage(
+  browser: any,
+  authFile: string,
+  channelName: string,
+  userId?: string
+): Promise<{ slackPage: SlackPage; context: BrowserContext }> {
+  const context = await browser.newContext({
+    storageState: path.join(AUTH_DIR, authFile),
+  });
+  const page = await context.newPage();
+  const slackPage = new SlackPage(page, channelName, userId);
+  await slackPage.goToChannel();
+  return { slackPage, context };
+}
+
+// ── Playwright fixture with 4-user support ─────────────────────
 
 type SlackFixtures = {
   slackPageA: SlackPage;
   slackPageB: SlackPage;
+  slackPageC: SlackPage;
   slackPageAdmin: SlackPage;
 };
 
 export const test = base.extend<SlackFixtures>({
   slackPageA: async ({ browser }, use) => {
-    const context = await browser.newContext({
-      storageState: path.join(AUTH_DIR, 'user-a.json'),
-    });
-    const page = await context.newPage();
-    const slackPage = new SlackPage(
-      page,
-      process.env.SLACK_TEST_CHANNEL_NAME!
+    const { slackPage, context } = await createSlackPage(
+      browser,
+      'user-a.json',
+      process.env.SLACK_TEST_CHANNEL_NAME!,
+      process.env.SLACK_TEST_USER_A_ID
     );
-    await slackPage.goToChannel();
     await use(slackPage);
     await context.close();
   },
 
   slackPageB: async ({ browser }, use) => {
-    const context = await browser.newContext({
-      storageState: path.join(AUTH_DIR, 'user-b.json'),
-    });
-    const page = await context.newPage();
-    const slackPage = new SlackPage(
-      page,
-      process.env.SLACK_TEST_CHANNEL_NAME!
+    const { slackPage, context } = await createSlackPage(
+      browser,
+      'user-b.json',
+      process.env.SLACK_TEST_CHANNEL_NAME!,
+      process.env.SLACK_TEST_USER_B_ID
     );
-    await slackPage.goToChannel();
+    await use(slackPage);
+    await context.close();
+  },
+
+  slackPageC: async ({ browser }, use) => {
+    const { slackPage, context } = await createSlackPage(
+      browser,
+      'user-c.json',
+      process.env.SLACK_TEST_CHANNEL_NAME!,
+      process.env.SLACK_TEST_USER_C_ID
+    );
     await use(slackPage);
     await context.close();
   },
 
   slackPageAdmin: async ({ browser }, use) => {
-    const context = await browser.newContext({
-      storageState: path.join(AUTH_DIR, 'admin.json'),
-    });
-    const page = await context.newPage();
-    const slackPage = new SlackPage(
-      page,
-      process.env.SLACK_TEST_CHANNEL_NAME!
+    const { slackPage, context } = await createSlackPage(
+      browser,
+      'admin.json',
+      process.env.SLACK_TEST_CHANNEL_NAME!,
+      process.env.SLACK_TEST_ADMIN_ID
     );
-    await slackPage.goToChannel();
     await use(slackPage);
     await context.close();
   },

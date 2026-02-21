@@ -998,19 +998,28 @@ SLACK_TEST_CHANNEL_NAME=lunch-test
 SLACK_TEST_USER_A_EMAIL=test-user-a@example.com
 SLACK_TEST_USER_A_PASSWORD=password-a
 SLACK_TEST_USER_A_ID=UXXXXXXA
+SLACK_TEST_USER_A_DISPLAY_NAME=User A
 
 # User de test B (participant)
 SLACK_TEST_USER_B_EMAIL=test-user-b@example.com
 SLACK_TEST_USER_B_PASSWORD=password-b
 SLACK_TEST_USER_B_ID=UXXXXXXB
+SLACK_TEST_USER_B_DISPLAY_NAME=User B
+
+# User de test C (participant supplementaire)
+SLACK_TEST_USER_C_EMAIL=test-user-c@example.com
+SLACK_TEST_USER_C_PASSWORD=password-c
+SLACK_TEST_USER_C_ID=UXXXXXXC
+SLACK_TEST_USER_C_DISPLAY_NAME=User C
 
 # User de test Admin
 SLACK_TEST_ADMIN_EMAIL=test-admin@example.com
 SLACK_TEST_ADMIN_PASSWORD=password-admin
 SLACK_TEST_ADMIN_ID=UXXXXXXADMIN
+SLACK_TEST_ADMIN_DISPLAY_NAME=Admin
 
 # App Backend
-APP_BASE_URL=http://localhost:8000
+E2E_APP_BASE_URL=http://localhost:8000
 ```
 
 ### 16.3 Architecture des tests Playwright
@@ -1084,6 +1093,7 @@ e2e/
 └── auth/
     ├── user-a.json              # Session storage persistee
     ├── user-b.json
+    ├── user-c.json
     └── admin.json
 ```
 
@@ -1187,14 +1197,17 @@ e2e/
 
 ---
 
-#### PHASE 9 : Full Lifecycle (4 tests)
+#### PHASE 9 : Full Lifecycle (5 tests) — 4 users simultanes
+
+Tous les tests Phase 9 utilisent **4 BrowserContexts** simultanes (User A, B, C, Admin) avec des interactions croisees.
 
 | # | Test | Fichier | Ref manifeste | Statut |
 |---|------|---------|--------------|--------|
-| E2E-9.1 | Happy path complet — Session → Proposal → 2 commandes → recap → ajust prix → cloture | `phase-9-full-lifecycle/01-happy-path-group-order.spec.ts` | 14.1 | 🟢 Ecrit |
-| E2E-9.2 | Happy path Quick Run — Creation → demandes → lock → ajust prix → cloture → recap | `phase-9-full-lifecycle/02-happy-path-quickrun.spec.ts` | 14.2 | 🟢 Ecrit |
-| E2E-9.3 | Multi-proposals — Session avec 3 propositions (vendors differents), commandes croisees, clotures independantes | `phase-9-full-lifecycle/03-multi-proposal-session.spec.ts` | 14.8 | 🟢 Ecrit |
-| E2E-9.4 | Multi-users concurrent — User A et B agissent en parallele (commandes, roles), verifier coherence | `phase-9-full-lifecycle/04-multi-user-concurrent.spec.ts` | 14.3 | 🟢 Ecrit |
+| E2E-9.1 | Happy path 4 users — A propose, B+C+Admin commandent, A gere recap et cloture | `phase-9-full-lifecycle/01-happy-path-group-order.spec.ts` | 14.1 | 🟢 Ecrit |
+| E2E-9.2 | Quick Run 4 users — A cree, B+C+Admin ajoutent demandes, A verrouille et cloture | `phase-9-full-lifecycle/02-happy-path-quickrun.spec.ts` | 14.2 | 🟢 Ecrit |
+| E2E-9.3 | Multi-proposals 4 users — A propose Pizza, C propose Sushi, B+Admin commandent en croisant, clotures independantes | `phase-9-full-lifecycle/03-multi-proposal-session.spec.ts` | 14.8 | 🟢 Ecrit |
+| E2E-9.4 | Concurrence 4 users — Race condition roles, 4 commandes simultanees, chaine de delegation A→B→C | `phase-9-full-lifecycle/04-multi-user-concurrent.spec.ts` | 14.3 | 🟢 Ecrit |
+| E2E-9.5 | Interaction croisee — A cree commande, B rejoint A, C cree 2nde commande, Admin choisit librement, delegation, clotures croisees | `phase-9-full-lifecycle/05-four-users-cross-interaction.spec.ts` | 14.1–14.4 | 🟢 Ecrit |
 
 ---
 
@@ -1210,8 +1223,8 @@ e2e/
 | Phase 6 : Permissions | 4 | T4.7–T4.9, T3.1.6–T3.1.7, T6.4.2, T10.4 |
 | Phase 7 : Dashboard | 7 | T5.1–T5.10, tous etats S1–S6 |
 | Phase 8 : Edge Cases | 6 | T13.1–T13.6, T6.1.3–T6.1.6, T7.1.7, scenarios 14.5–14.8 |
-| Phase 9 : Lifecycle | 4 | Scenarios 14.1–14.4 |
-| **TOTAL** | **44 tests** | **100% du manifeste** |
+| Phase 9 : Lifecycle | 5 | Scenarios 14.1–14.4 + interactions croisees 4 users |
+| **TOTAL** | **45 tests** | **100% du manifeste** |
 
 ### 16.6 Suivi de progression
 
@@ -1225,8 +1238,8 @@ e2e/
 | Phase 6 : Permissions | 0 | 0 | 4 | 4 |
 | Phase 7 : Dashboard | 0 | 0 | 7 | 7 |
 | Phase 8 : Edge Cases | 0 | 0 | 6 | 6 |
-| Phase 9 : Lifecycle | 0 | 0 | 4 | 4 |
-| **TOTAL** | **0** | **0** | **44** | **44** |
+| Phase 9 : Lifecycle | 0 | 0 | 5 | 5 |
+| **TOTAL** | **0** | **0** | **45** | **45** |
 
 ### 16.7 Pre-requis avant chaque phase
 
