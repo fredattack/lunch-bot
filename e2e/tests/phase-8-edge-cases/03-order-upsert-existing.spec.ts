@@ -21,19 +21,19 @@ test.describe('E2E-8.3: Order Upsert (Existing Order)', () => {
     );
     await slackPageA.wait(3000);
 
-    // User A re-opens order modal for same proposal
-    // This should pre-fill with existing order data
-    await slackPageA.reload();
-    await slackPageA.wait(2000);
+    // User A re-opens dashboard — should be in S3 state with "Voir ma commande" or "Modifier ma commande"
+    await openDashboard(slackPageA);
+    await assertModalOpen(slackPageA);
 
-    // Click "Commander" button on the same proposal
-    const orderBtn = slackPageA.page.locator('button:has-text("Commander"), button:has-text("commande")').first();
-    if (await orderBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await orderBtn.click();
+    // Click the edit/view button in the dashboard for the existing order
+    const editBtn = slackPageA.page.locator('button:has-text("Voir ma commande"), button:has-text("Modifier ma commande"), button:has-text("commande")').first();
+    if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await editBtn.click({ force: true });
       await slackPageA.waitForModal();
 
-      // Modal should be pre-filled with existing order
-      const descField = slackPageA.page.locator('[data-qa-block-id="description"] input, [data-block-id="description"] input, [data-qa-block-id="description"] textarea').first();
+      // Modal should be pre-filled with existing order — use ARIA to find description field
+      const dialog = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
+      const descField = dialog.getByRole('textbox', { name: /description/i });
       if (await descField.isVisible({ timeout: 5000 }).catch(() => false)) {
         const currentValue = await descField.inputValue();
         expect(currentValue).toContain(TestOrders.MARGHERITA.description);

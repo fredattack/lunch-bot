@@ -48,16 +48,14 @@ test.describe('E2E-3.1: Create Order', () => {
     await placeOrder(slackPageA, TestOrders.MARGHERITA.description, TestOrders.MARGHERITA.priceEstimated);
     await slackPageA.wait(3000);
 
-    // User B opens dashboard and orders
+    // User B opens dashboard and orders from the existing proposal
     await openDashboard(slackPageB);
     await assertModalOpen(slackPageB);
 
-    const orderBtn = slackPageB.page.locator('button:has-text("Commander ici"), button:has-text("Commander")').first();
-    if (await orderBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await orderBtn.click();
-      await slackPageB.waitForModal();
-      await placeOrder(slackPageB, TestOrders.CALZONE.description, TestOrders.CALZONE.priceEstimated);
-      await slackPageB.wait(2000);
-    }
+    // Click "Commander ici" inside the dashboard modal (not in the channel)
+    await slackPageB.clickButton('Commander ici');
+    // fillModalField retry will wait for the order form modal to appear
+    await placeOrder(slackPageB, TestOrders.CALZONE.description, TestOrders.CALZONE.priceEstimated);
+    await slackPageB.wait(2000);
   });
 });

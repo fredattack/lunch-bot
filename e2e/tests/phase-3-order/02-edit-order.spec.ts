@@ -28,7 +28,7 @@ test.describe('E2E-3.2: Edit Order', () => {
     // Click "Modifier" button
     const editBtn = slackPageA.page.locator('button:has-text("Modifier")').first();
     if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await editBtn.click();
+      await editBtn.click({ force: true });
       await slackPageA.waitForModal();
 
       // Edit the order

@@ -27,7 +27,7 @@ test.describe('E2E-2.5: Close Proposal', () => {
 
     const closeBtn = slackPageA.page.locator('button:has-text("Cloturer")').first();
     if (await closeBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await closeBtn.click();
+      await closeBtn.click({ force: true });
       await slackPageA.wait(3000);
     }
 
@@ -60,7 +60,7 @@ test.describe('E2E-2.5: Close Proposal', () => {
     const isVisible = await closeBtn.isVisible({ timeout: 3000 }).catch(() => false);
 
     if (isVisible) {
-      await closeBtn.click();
+      await closeBtn.click({ force: true });
       await slackPageB.wait(2000);
       // Should receive ephemeral rejection
       await assertEphemeralVisible(slackPageB, ErrorMessages.ONLY_RESPONSIBLE_CAN_CLOSE);

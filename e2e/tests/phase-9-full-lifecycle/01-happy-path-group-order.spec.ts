@@ -5,7 +5,6 @@ import {
   proposeFromCatalog,
   placeOrder,
   dashboardOrderHere,
-  viewRecap,
   adjustFinalPrice,
   closeProposal,
   refreshAll,
@@ -81,34 +80,57 @@ test.describe('E2E-9.1: Happy Path — Full Group Order with 4 Users', () => {
     );
     await slackPageAdmin.wait(3_000);
 
-    // ── Step 12: User A reloads and views recap (4 orders) ──
-    await slackPageA.reload();
-    await slackPageA.wait(2_000);
+    // ── Step 12: User A views recap via dashboard S4 (4 orders) ──
+    await openDashboard(slackPageA);
+    await assertModalOpen(slackPageA);
 
-    const recapContent = await viewRecap(slackPageA);
-    if (recapContent) {
-      // Recap should contain all 4 order descriptions
-      expect(recapContent).toContain(TestOrders.MARGHERITA.description);
-      expect(recapContent).toContain(TestOrders.CALZONE.description);
-      expect(recapContent).toContain(TestOrders.CHEESEBURGER.description);
-      expect(recapContent).toContain(TestOrders.QUATRE_FROMAGES.description);
-      await slackPageA.dismissModal();
+    const recapBtn = slackPageA.page.locator('[data-qa="wizard_modal"]').last()
+      .locator('button:has-text("recap")').first();
+    if (await recapBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await recapBtn.click({ force: true });
+      await slackPageA.wait(3_000);
+
+      if (await slackPageA.isModalVisible()) {
+        const recapContent = await slackPageA.getModalContent();
+        expect(recapContent).toContain(TestOrders.MARGHERITA.description);
+        expect(recapContent).toContain(TestOrders.CALZONE.description);
+        expect(recapContent).toContain(TestOrders.CHEESEBURGER.description);
+        expect(recapContent).toContain(TestOrders.QUATRE_FROMAGES.description);
+
+        // Capture recap modal
+        const recapModal = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
+        await recapModal.screenshot({ path: 'Docs/screens/26-modal-recap-commandes.png' });
+
+        await slackPageA.dismissModal();
+      }
     }
 
-    // ── Step 13: User A adjusts final prices ──
+    // ── Step 13: User A adjusts final prices (via channel message) ──
+    if (await slackPageA.isModalVisible()) {
+      await slackPageA.dismissModal();
+    }
+    await slackPageA.reload();
+    await slackPageA.wait(3_000);
+
     const adjustBtn = slackPageA.page.locator('button:has-text("Ajuster prix"), button:has-text("Ajuster")').first();
     if (await adjustBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await adjustBtn.click();
+      await adjustBtn.click({ force: true });
       await slackPageA.waitForModal();
       await slackPageA.fillModalField('price_final', TestPrices.FINAL_ADJUSTED);
       await slackPageA.submitModal();
       await slackPageA.wait(3_000);
     }
 
-    // ── Step 14: User A closes proposal ──
+    // ── Step 14: User A closes proposal (via channel message) ──
+    if (await slackPageA.isModalVisible()) {
+      await slackPageA.dismissModal();
+    }
+    await slackPageA.reload();
+    await slackPageA.wait(2_000);
+
     const closeBtn = slackPageA.page.locator('button:has-text("Cloturer")').first();
     if (await closeBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await closeBtn.click();
+      await closeBtn.click({ force: true });
       await slackPageA.wait(3_000);
     }
 

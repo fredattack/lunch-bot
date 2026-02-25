@@ -120,7 +120,7 @@ test.describe('E2E-9.5: Four Users Cross-Interaction Flow', () => {
       .locator('button:has-text("Commander")')
       .first();
     if (await orderBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await orderBtn.click();
+      await orderBtn.click({ force: true });
       await slackPageAdmin.waitForModal();
       await placeOrder(
         slackPageAdmin,
@@ -164,7 +164,7 @@ test.describe('E2E-9.5: Four Users Cross-Interaction Flow', () => {
 
     const delegateBtn = slackPageA.page.locator('button:has-text("Deleguer")').first();
     if (await delegateBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await delegateBtn.click();
+      await delegateBtn.click({ force: true });
       await slackPageA.waitForModal();
       await slackPageA.selectUser('delegate', TestUsers.USER_B.displayName);
       await slackPageA.submitModal();
@@ -187,7 +187,7 @@ test.describe('E2E-9.5: Four Users Cross-Interaction Flow', () => {
 
     // User B closes Pizza proposal
     if (await closeBtnB.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await closeBtnB.click();
+      await closeBtnB.click({ force: true });
       await slackPageB.wait(3_000);
     }
 
@@ -197,7 +197,7 @@ test.describe('E2E-9.5: Four Users Cross-Interaction Flow', () => {
 
     const closeBtnC = slackPageC.page.locator('button:has-text("Cloturer")').first();
     if (await closeBtnC.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await closeBtnC.click();
+      await closeBtnC.click({ force: true });
       await slackPageC.wait(3_000);
     }
 

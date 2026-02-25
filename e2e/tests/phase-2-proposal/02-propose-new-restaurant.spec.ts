@@ -47,8 +47,9 @@ test.describe('E2E-2.2: Propose New Restaurant', () => {
     await slackPageA.clickButton('Proposer un nouveau restaurant');
     await slackPageA.waitForModal();
 
-    // Fill name but don't select any fulfillment type
+    // Fill name and uncheck the default "A emporter" checkbox
     await slackPageA.fillModalField('name', 'Resto Sans Type');
+    await slackPageA.uncheckModalCheckbox('fulfillment_types', 'pickup');
     await slackPageA.submitModal();
     await slackPageA.wait(2000);
 

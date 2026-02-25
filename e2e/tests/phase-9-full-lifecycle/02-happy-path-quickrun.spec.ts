@@ -4,10 +4,11 @@ import {
   openDashboard,
   createQuickRun,
   addQuickRunRequest,
-  refreshAll,
+  lockQuickRun,
+  closeQuickRunAction,
 } from '../../helpers/slack-actions';
 import { assertModalOpen, assertMessageVisible } from '../../helpers/slack-assertions';
-import { TestQuickRun, TestUsers } from '../../fixtures/test-data';
+import { TestQuickRun } from '../../fixtures/test-data';
 
 test.describe('E2E-9.2: Happy Path — Full Quick Run with 4 Users', () => {
   test.beforeAll(async () => {
@@ -45,7 +46,6 @@ test.describe('E2E-9.2: Happy Path — Full Quick Run with 4 Users', () => {
     // ── Step 4: User B sees the Quick Run and adds a request ──
     await slackPageB.reload();
     await slackPageB.wait(2_000);
-
     await addQuickRunRequest(
       slackPageB,
       TestQuickRun.REQUEST_CROISSANT.description,
@@ -57,7 +57,6 @@ test.describe('E2E-9.2: Happy Path — Full Quick Run with 4 Users', () => {
     // ── Step 5: User C adds a request ──
     await slackPageC.reload();
     await slackPageC.wait(2_000);
-
     await addQuickRunRequest(
       slackPageC,
       TestQuickRun.REQUEST_CAFE.description,
@@ -69,7 +68,6 @@ test.describe('E2E-9.2: Happy Path — Full Quick Run with 4 Users', () => {
     // ── Step 6: Admin adds a request ──
     await slackPageAdmin.reload();
     await slackPageAdmin.wait(2_000);
-
     await addQuickRunRequest(
       slackPageAdmin,
       TestQuickRun.REQUEST_CHOCOLATINE.description,
@@ -78,46 +76,28 @@ test.describe('E2E-9.2: Happy Path — Full Quick Run with 4 Users', () => {
     );
     await slackPageAdmin.wait(2_000);
 
-    // ── Step 7: User A reloads and locks the Quick Run ──
-    await slackPageA.reload();
-    await slackPageA.wait(2_000);
-
-    const lockBtn = slackPageA.page.locator('button:has-text("Verrouiller")').first();
-    if (await lockBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await lockBtn.click();
-      await slackPageA.wait(3_000);
-    }
+    // ── Step 7: User A locks (DO NOT reload — ephemeral buttons would be lost) ──
+    await slackPageA.wait(3_000);
+    await lockQuickRun(slackPageA);
 
     // ── Step 8: Verify locked — User B cannot add more requests ──
     await slackPageB.reload();
     await slackPageB.wait(2_000);
-    const addBtnB = slackPageB.page.locator('button:has-text("Ajouter")').first();
-    // The "Ajouter" button should either be gone or result in an ephemeral error
+    const addBtnB = slackPageB.page.locator('button:has-text("Ajouter")').last();
     if (await addBtnB.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await addBtnB.click();
+      await addBtnB.click({ force: true });
       await slackPageB.wait(2_000);
-      // Should see an ephemeral message saying requests are locked
     }
 
-    // ── Step 9: User A closes the Quick Run ──
-    await slackPageA.reload();
-    await slackPageA.wait(2_000);
-
-    const closeBtn = slackPageA.page.locator('button:has-text("Cloturer")').first();
-    if (await closeBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await closeBtn.click();
-      await slackPageA.wait(2_000);
-
-      // Handle close/price adjustment modal if it appears
-      if (await slackPageA.isModalVisible()) {
-        await slackPageA.submitModal();
-        await slackPageA.wait(3_000);
-      }
+    // ── Step 9: User A closes (after lock, new ephemeral with "Cloturer" appears) ──
+    await closeQuickRunAction(slackPageA);
+    if (await slackPageA.isModalVisible()) {
+      await slackPageA.submitModal();
+      await slackPageA.wait(3_000);
     }
 
     // ── Step 10: Recap should be posted in channel ──
     await slackPageA.reload();
     await slackPageA.wait(2_000);
-    // Quick Run should be closed — no more action buttons
   });
 });

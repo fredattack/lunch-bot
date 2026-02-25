@@ -75,3 +75,34 @@ export async function runScheduler(): Promise<void> {
     cwd: process.cwd().replace('/e2e', ''),
   });
 }
+
+/**
+ * Lock the latest open Quick Run via backend action.
+ * Bypasses Slack UI (ephemeral thread messages are unreliable in E2E).
+ * Also updates the Slack message to reflect locked status.
+ */
+export async function lockLatestQuickRun(): Promise<void> {
+  const command = `php artisan tinker --execute="
+    \\$qr = \\App\\Models\\QuickRun::where('status', 'open')->latest()->firstOrFail();
+    app(\\App\\Actions\\QuickRun\\LockQuickRun::class)->handle(\\$qr);
+    app(\\App\\Services\\Slack\\SlackMessenger::class)->updateQuickRunMessage(\\$qr);
+  "`;
+  await execAsync(command, {
+    cwd: process.cwd().replace('/e2e', ''),
+  });
+}
+
+/**
+ * Close the latest locked Quick Run via backend action.
+ * Bypasses Slack UI (ephemeral thread messages are unreliable in E2E).
+ */
+export async function closeLatestQuickRun(): Promise<void> {
+  const command = `php artisan tinker --execute="
+    \\$qr = \\App\\Models\\QuickRun::where('status', 'locked')->latest()->firstOrFail();
+    app(\\App\\Actions\\QuickRun\\CloseQuickRun::class)->handle(\\$qr, \\$qr->provider_user_id);
+    app(\\App\\Services\\Slack\\SlackMessenger::class)->updateQuickRunMessage(\\$qr);
+  "`;
+  await execAsync(command, {
+    cwd: process.cwd().replace('/e2e', ''),
+  });
+}

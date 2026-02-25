@@ -21,25 +21,20 @@ test.describe('E2E-7.3: Dashboard State S3 — Has Order', () => {
     );
     await slackPageA.wait(3000);
 
-    // User B places an order
+    // User B places an order from the existing proposal
     await openDashboard(slackPageB);
     await assertModalOpen(slackPageB);
-
-    const orderBtn = slackPageB.page.locator('button:has-text("Commander")').first();
-    if (await orderBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await orderBtn.click();
-      await slackPageB.waitForModal();
-      await slackPageB.fillModalField('description', TestOrders.CALZONE.description);
-      await slackPageB.fillModalField('price_estimated', TestOrders.CALZONE.priceEstimated);
-      await slackPageB.submitModal();
-      await slackPageB.wait(3000);
-    }
+    await slackPageB.clickButton('Commander ici');
+    await slackPageB.fillModalField('description', TestOrders.CALZONE.description);
+    await slackPageB.fillModalField('price_estimated', TestOrders.CALZONE.priceEstimated);
+    await slackPageB.submitModal();
+    await slackPageB.wait(3000);
 
     // User B re-opens dashboard — should be in S3 (has order)
     await openDashboard(slackPageB);
     await assertModalOpen(slackPageB);
 
-    const modal = slackPageB.page.locator('[data-qa="modal"], .p-block_kit_modal');
+    const modal = slackPageB.page.locator('[data-qa="wizard_modal"]').last();
     const content = await modal.innerText();
     // Should show the user's order details
     expect(content).toContain(TestOrders.CALZONE.description);

@@ -15,7 +15,7 @@ test.describe('E2E-5.4: Vendor Deactivate', () => {
     // Open vendor list
     const vendorListBtn = slackPageA.page.locator('button:has-text("Voir les restaurants"), button:has-text("restaurants")').first();
     if (await vendorListBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await vendorListBtn.click();
+      await vendorListBtn.click({ force: true });
       await slackPageA.waitForModal();
 
       // Count vendors before deactivation
@@ -24,7 +24,7 @@ test.describe('E2E-5.4: Vendor Deactivate', () => {
       // Edit first vendor and deactivate it
       const editBtn = slackPageA.page.locator('button:has-text("Modifier"), button:has-text("Editer")').first();
       if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await editBtn.click();
+        await editBtn.click({ force: true });
         await slackPageA.waitForModal();
 
         // Toggle active/inactive checkbox

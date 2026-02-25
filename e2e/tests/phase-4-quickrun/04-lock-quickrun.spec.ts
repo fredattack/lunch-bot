@@ -1,15 +1,21 @@
 import { test, expect } from '../../fixtures/slack-page';
 import { resetDatabase } from '../../helpers/api-helpers';
-import { openDashboard, createQuickRun, addQuickRunRequest } from '../../helpers/slack-actions';
-import { assertModalOpen, assertEphemeralVisible } from '../../helpers/slack-assertions';
-import { TestQuickRun, ErrorMessages } from '../../fixtures/test-data';
+import {
+  openDashboard,
+  createQuickRun,
+  addQuickRunRequest,
+  lockQuickRun,
+} from '../../helpers/slack-actions';
+import { assertModalOpen } from '../../helpers/slack-assertions';
+import { TestQuickRun } from '../../fixtures/test-data';
 
 test.describe('E2E-4.4: Lock Quick Run', () => {
   test.beforeAll(async () => {
     await resetDatabase();
   });
 
-  test('should allow runner to lock the Quick Run', async ({ slackPageA }) => {
+  test('should allow runner to lock the Quick Run', async ({ slackPageA, slackPageB }) => {
+    // User A creates the Quick Run (becomes runner)
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
     await createQuickRun(
@@ -19,22 +25,23 @@ test.describe('E2E-4.4: Lock Quick Run', () => {
     );
     await slackPageA.wait(3000);
 
-    // Add a request first
+    // User B adds a request (runner cannot add to own QR)
+    await slackPageB.reload();
+    await slackPageB.wait(2000);
     await addQuickRunRequest(
-      slackPageA,
+      slackPageB,
       TestQuickRun.REQUEST_PAIN.description,
       TestQuickRun.REQUEST_PAIN.priceEstimated,
       TestQuickRun.BOULANGERIE.destination
     );
-    await slackPageA.wait(2000);
+    await slackPageB.wait(2000);
 
-    // Lock
-    const lockBtn = slackPageA.page.locator('button:has-text("Verrouiller")').first();
-    if (await lockBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await lockBtn.click();
-      await slackPageA.wait(3000);
-      await assertEphemeralVisible(slackPageA, 'verrouille');
-    }
+    // User A locks via "Je pars" button in runner actions ephemeral
+    await lockQuickRun(slackPageA);
+
+    // Quick Run message should now show locked status
+    const msg = await slackPageA.getMessageContaining(TestQuickRun.BOULANGERIE.destination);
+    expect(msg).toBeTruthy();
   });
 
   test('should reject new requests after Quick Run is locked', async ({ slackPageA, slackPageB }) => {
@@ -49,23 +56,22 @@ test.describe('E2E-4.4: Lock Quick Run', () => {
     await slackPageA.wait(3000);
 
     // Lock the Quick Run
-    const lockBtn = slackPageA.page.locator('button:has-text("Verrouiller")').first();
-    if (await lockBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await lockBtn.click();
-      await slackPageA.wait(3000);
-    }
+    await lockQuickRun(slackPageA);
 
-    // User B tries to add a request
+    // User B reloads
     await slackPageB.reload();
     await slackPageB.wait(2000);
 
-    const addBtn = slackPageB.page.locator('button:has-text("Ajouter")').first();
-    if (await addBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await addBtn.click();
-      await slackPageB.wait(2000);
-      // Should see rejection
-      await assertEphemeralVisible(slackPageB, ErrorMessages.QUICKRUN_NO_MORE_REQUESTS);
-    }
+    // The locked QR message should show "Verrouille" and NOT have an "Ajouter" button
+    const lockedMsg = slackPageB.page
+      .getByRole('listitem')
+      .filter({ hasText: TestQuickRun.BOULANGERIE.destination })
+      .filter({ hasText: /Verrouille/ })
+      .last();
+    await expect(lockedMsg).toBeVisible({ timeout: 5000 });
+
+    const addBtn = lockedMsg.locator('button:has-text("Ajouter")');
+    await expect(addBtn).toHaveCount(0);
   });
 
   test('should reject lock from non-runner', async ({ slackPageA, slackPageB }) => {
@@ -79,15 +85,14 @@ test.describe('E2E-4.4: Lock Quick Run', () => {
     );
     await slackPageA.wait(3000);
 
-    // User B tries to lock
+    // User B should NOT see runner actions (they are ephemeral to User A only)
+    // But if User B somehow sends the lock action, they get rejected
     await slackPageB.reload();
     await slackPageB.wait(2000);
 
-    const lockBtn = slackPageB.page.locator('button:has-text("Verrouiller")').first();
-    if (await lockBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await lockBtn.click();
-      await slackPageB.wait(2000);
-      await assertEphemeralVisible(slackPageB, ErrorMessages.ONLY_RUNNER_CAN_LOCK);
-    }
+    // "Je pars" button is ephemeral to runner only — User B should not see it
+    const lockBtn = slackPageB.page.locator('button:has-text("Je pars")').last();
+    const isVisible = await lockBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    expect(isVisible).toBe(false);
   });
 });

@@ -16,7 +16,7 @@ test.describe('E2E-5.3: Vendor List Search', () => {
     // Open vendor list
     const vendorListBtn = slackPageA.page.locator('button:has-text("Voir les restaurants"), button:has-text("restaurants")').first();
     if (await vendorListBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await vendorListBtn.click();
+      await vendorListBtn.click({ force: true });
       await slackPageA.waitForModal();
 
       // Type in search field
@@ -26,7 +26,7 @@ test.describe('E2E-5.3: Vendor List Search', () => {
         await slackPageA.wait(2000);
 
         // Results should be filtered
-        const modal = slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal');
+        const modal = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
         const content = await modal.innerText();
         expect(content.toLowerCase()).toContain('pizza');
       }

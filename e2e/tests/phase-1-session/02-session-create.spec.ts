@@ -14,7 +14,7 @@ test.describe('E2E-1.2: Session Create', () => {
 
     // The dashboard modal being visible confirms a session was created (or reused)
     // because handleLunchDashboard calls createLunchSession.handle()
-    const modalContent = await slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal').innerText();
+    const modalContent = await slackPageA.getModalContent();
     // Should contain today's date or session info
     expect(modalContent).toBeTruthy();
   });
@@ -30,7 +30,7 @@ test.describe('E2E-1.2: Session Create', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
-    const modalContent = await slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal').innerText();
+    const modalContent = await slackPageA.getModalContent();
     expect(modalContent).toBeTruthy();
   });
 });

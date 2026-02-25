@@ -102,6 +102,7 @@ class QuickRunInteractionHandler extends BaseInteractionHandler
 
         $this->messenger->updateQuickRunMessage($quickRun);
         $this->messenger->notifyQuickRunRunner($quickRun, $request);
+        $this->messenger->postQuickRunRunnerActions($quickRun);
 
         return response('', 200);
     }
@@ -130,6 +131,7 @@ class QuickRunInteractionHandler extends BaseInteractionHandler
 
         $request->loadMissing('quickRun');
         $this->messenger->updateQuickRunMessage($request->quickRun);
+        $this->messenger->postQuickRunRunnerActions($request->quickRun);
 
         return response('', 200);
     }
@@ -216,6 +218,7 @@ class QuickRunInteractionHandler extends BaseInteractionHandler
         try {
             $this->deleteRequest->handle($request, $userId);
             $this->messenger->updateQuickRunMessage($request->quickRun);
+            $this->messenger->postQuickRunRunnerActions($request->quickRun);
             $this->messenger->postEphemeral($channelId, $userId, 'Demande supprimee.');
         } catch (\InvalidArgumentException $e) {
             $this->messenger->postEphemeral($channelId, $userId, $e->getMessage());

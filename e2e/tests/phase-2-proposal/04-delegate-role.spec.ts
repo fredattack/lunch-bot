@@ -21,16 +21,27 @@ test.describe('E2E-2.4: Delegate Role', () => {
     );
     await slackPageA.wait(3000);
 
-    // User A opens delegation modal
+    // Ensure modal is closed and channel is visible with updated message
+    if (await slackPageA.isModalVisible()) {
+      await slackPageA.dismissModal();
+    }
+    await slackPageA.reload();
+    await slackPageA.wait(3000);
+
+    // User A opens delegation modal — button is on the channel proposal message
     const delegateBtn = slackPageA.page.locator('button:has-text("Deleguer")').first();
     if (await delegateBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await delegateBtn.click();
+      await delegateBtn.click({ force: true });
       await slackPageA.waitForModal();
+
+      // Capture delegation modal
+      const delegateModal = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
+      await delegateModal.screenshot({ path: 'Docs/screens/24-modal-delegate-role.png' });
 
       // Select user B in the delegate modal
       const userSelect = slackPageA.page.locator('[data-qa-block-id="delegate"] [data-qa="user-select"], [data-block-id="delegate"] [data-qa="select_input"]').first();
       if (await userSelect.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await userSelect.click();
+        await userSelect.click({ force: true });
         await slackPageA.wait(1000);
         // Type user B's name
         const input = slackPageA.page.locator('[data-qa="user-select-input"], input[type="search"]').first();
@@ -39,7 +50,7 @@ test.describe('E2E-2.4: Delegate Role', () => {
           await slackPageA.wait(1000);
           const option = slackPageA.page.locator('[data-qa="user-select-option"], [role="option"]').first();
           if (await option.isVisible({ timeout: 3000 }).catch(() => false)) {
-            await option.click();
+            await option.click({ force: true });
           }
         }
         await slackPageA.submitModal();

@@ -35,7 +35,7 @@ test.describe('E2E-1.4: Session Close', () => {
     // Close session
     const closeBtn = slackPageA.page.locator('button:has-text("Cloturer")').first();
     if (await closeBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await closeBtn.click();
+      await closeBtn.click({ force: true });
       await slackPageA.wait(3000);
     }
   });
@@ -60,14 +60,14 @@ test.describe('E2E-1.4: Session Close', () => {
 
     const closeSessionBtn = slackPageA.page.locator('button:has-text("Cloturer la journee"), button:has-text("Cloturer")').first();
     if (await closeSessionBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await closeSessionBtn.click();
+      await closeSessionBtn.click({ force: true });
       await slackPageA.wait(3000);
     }
 
     // Re-open dashboard — should show S5 (AllClosed)
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
-    const content = await slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal').innerText();
+    const content = await slackPageA.getModalContent();
     // After closing, the dashboard should reflect closed state
     expect(content).toBeTruthy();
   });

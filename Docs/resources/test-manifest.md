@@ -4,7 +4,7 @@
 **Objectif** : Documenter exhaustivement les scenarios de test du Lunch Bot MVP, couvrant toutes les interactions Slack, les machines a etats, les flux utilisateur, les permissions et les cas limites.
 
 ---
-
+ 
 ## Table des matieres
 
 1. [Outils recommandes](#1-outils-recommandes)

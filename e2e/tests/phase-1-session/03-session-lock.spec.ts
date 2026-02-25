@@ -23,7 +23,7 @@ test.describe('E2E-1.3: Session Lock', () => {
     await assertModalOpen(slackPageA);
 
     // The dashboard should still be visible but actions may be restricted
-    const modalContent = await slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal').innerText();
+    const modalContent = await slackPageA.getModalContent();
     expect(modalContent).toBeTruthy();
   });
 
@@ -36,7 +36,7 @@ test.describe('E2E-1.3: Session Lock', () => {
     // Try to start a proposal — should fail with locked message
     const startButton = slackPageA.page.locator('button:has-text("Demarrer une commande")').first();
     if (await startButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await startButton.click();
+      await startButton.click({ force: true });
       await slackPageA.wait(2000);
       // Should get ephemeral error or modal error
       const ephemeral = await slackPageA.getEphemeralText();

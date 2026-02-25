@@ -30,7 +30,7 @@ test.describe('E2E-8.6: Session Close Cascades', () => {
     // Try to create a second proposal from dashboard
     const startBtn = slackPageA.page.locator('button:has-text("Lancer une autre"), button:has-text("Demarrer")').first();
     if (await startBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await startBtn.click();
+      await startBtn.click({ force: true });
       await slackPageA.waitForModal();
 
       await slackPageA.selectModalOption('enseigne', TestVendors.SUSHI_BAR.name);
@@ -50,7 +50,7 @@ test.describe('E2E-8.6: Session Close Cascades', () => {
 
     const closeSessionBtn = slackPageA.page.locator('button:has-text("Cloturer la journee"), button:has-text("Cloturer")').first();
     if (await closeSessionBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await closeSessionBtn.click();
+      await closeSessionBtn.click({ force: true });
       await slackPageA.wait(5000);
     }
 
@@ -58,7 +58,7 @@ test.describe('E2E-8.6: Session Close Cascades', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
-    const content = await slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal').innerText();
+    const content = await slackPageA.getModalContent();
     // All proposals should be closed
     expect(content).toBeTruthy();
   });

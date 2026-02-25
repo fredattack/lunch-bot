@@ -6,7 +6,6 @@ use App\Enums\DashboardState;
 use App\Enums\FulfillmentType;
 use App\Enums\SlackAction;
 use App\Models\Order;
-use App\Models\Vendor;
 use App\Models\VendorProposal;
 use App\Services\Slack\Data\DashboardContext;
 use Carbon\CarbonInterface;
@@ -49,7 +48,6 @@ class DashboardBlockBuilder
     private function buildBlocks(DashboardContext $context): array
     {
         $blocks = $this->headerBlocks($context);
-        $blocks = array_merge($blocks, $this->quickActionsBlocks($context));
 
         $blocks = array_merge($blocks, match ($context->state) {
             DashboardState::NoProposal => $this->blocksForS1($context),
@@ -60,6 +58,8 @@ class DashboardBlockBuilder
             DashboardState::History => $this->blocksForS6($context),
         });
 
+        $blocks = array_merge($blocks, $this->footerBlocks($context));
+
         if ($this->isDevUser($context)) {
             $blocks = array_merge($blocks, $this->devToolsBlocks());
         }
@@ -67,26 +67,35 @@ class DashboardBlockBuilder
         return $blocks;
     }
 
-    private function quickActionsBlocks(DashboardContext $context): array
+    private function footerBlocks(DashboardContext $context): array
     {
+        if (in_array($context->state, [DashboardState::History, DashboardState::InCharge], true)) {
+            return [];
+        }
+
+        $elements = [];
+
+        if ($context->canCreateProposal()) {
+            $elements[] = $this->button(
+                'Proposer un autre resto',
+                SlackAction::DashboardStartFromCatalog->value,
+                (string) $context->session->id
+            );
+        }
+
+        $elements[] = $this->button(
+            'Quick Run',
+            SlackAction::QuickRunOpen->value,
+            'open'
+        );
+
         return [
+            ['type' => 'divider'],
             [
                 'type' => 'actions',
-                'block_id' => 'quick_actions',
-                'elements' => [
-                    $this->button(
-                        'Voir les restaurants',
-                        SlackAction::DashboardVendorsList->value,
-                        (string) $context->session->id
-                    ),
-                    $this->button(
-                        'Quick Run',
-                        SlackAction::QuickRunOpen->value,
-                        'open'
-                    ),
-                ],
+                'block_id' => 'footer_nav',
+                'elements' => $elements,
             ],
-            ['type' => 'divider'],
         ];
     }
 
@@ -222,19 +231,6 @@ class DashboardBlockBuilder
             $blocks = array_merge($blocks, $this->proposalCard($proposal, $context));
         }
 
-        $blocks[] = ['type' => 'divider'];
-        $blocks[] = [
-            'type' => 'actions',
-            'block_id' => 'footer_actions',
-            'elements' => [
-                $this->button(
-                    'Lancer une autre commande',
-                    SlackAction::DashboardStartFromCatalog->value,
-                    (string) $context->session->id
-                ),
-            ],
-        ];
-
         return $blocks;
     }
 
@@ -263,6 +259,7 @@ class DashboardBlockBuilder
 
     /**
      * S4: Utilisateur en charge d'une proposition.
+     * Shows enriched view with totals, participants, and inline order.
      */
     private function blocksForS4(DashboardContext $context): array
     {
@@ -274,6 +271,7 @@ class DashboardBlockBuilder
 
         if ($context->hasOrder() && $context->myOrderProposal) {
             $isMyOrderInCharge = $context->myProposalsInCharge->contains('id', $context->myOrderProposal->id);
+
             if (! $isMyOrderInCharge) {
                 $blocks[] = ['type' => 'divider'];
                 $blocks = array_merge($blocks, $this->myOrderBlock($context));
@@ -381,14 +379,16 @@ class DashboardBlockBuilder
         $vendorName = $vendor?->name ?? 'Restaurant inconnu';
         $emoji = $vendor?->getEmojiMarkdown() ?? '';
         $fulfillmentLabel = $this->fulfillmentLabel($proposal->fulfillment_type);
-        $deadlineTime = $proposal->deadline_time ?? '11:30';
 
         $responsibleText = $this->responsibleText($proposal);
-        $participantsText = $this->participantsText($proposal, 5);
+        $orderCount = $proposal->orders_count ?? $proposal->orders->count();
+        $smartParticipants = $this->smartParticipantsText($proposal, 5);
 
-        $sectionText = "{$emoji}*{$vendorName}*\n{$fulfillmentLabel} | Deadline {$deadlineTime} | {$responsibleText}";
-        if ($participantsText) {
-            $sectionText .= "\n{$participantsText}";
+        $sectionText = "{$emoji}*{$vendorName}* — {$fulfillmentLabel}";
+        $sectionText .= "\n{$responsibleText} · {$orderCount} commande(s)";
+
+        if ($smartParticipants) {
+            $sectionText .= "\n{$smartParticipants}";
         }
 
         $blocks = [
@@ -412,15 +412,6 @@ class DashboardBlockBuilder
                         'text' => ':warning: *Aide demandee*',
                     ],
                 ],
-            ];
-        }
-
-        $urlButtons = $this->vendorUrlButtons($vendor);
-        if (! empty($urlButtons)) {
-            $blocks[] = [
-                'type' => 'actions',
-                'block_id' => "proposal_urls_{$proposal->id}",
-                'elements' => $urlButtons,
             ];
         }
 
@@ -466,37 +457,6 @@ class DashboardBlockBuilder
         }
 
         return $blocks;
-    }
-
-    private function vendorUrlButtons(?Vendor $vendor): array
-    {
-        if (! $vendor) {
-            return [];
-        }
-
-        $buttons = [];
-
-        if (! empty($vendor->url_website)) {
-            $buttons[] = $this->urlButton('Site web', $vendor->url_website);
-        }
-
-        if (! empty($vendor->url_menu)) {
-            $buttons[] = $this->urlButton('Menu PDF', $vendor->url_menu);
-        }
-
-        return $buttons;
-    }
-
-    private function urlButton(string $text, string $url): array
-    {
-        return [
-            'type' => 'button',
-            'text' => [
-                'type' => 'plain_text',
-                'text' => $text,
-            ],
-            'url' => $url,
-        ];
     }
 
     private function myOrderBlock(DashboardContext $context): array
@@ -555,9 +515,42 @@ class DashboardBlockBuilder
     {
         $vendor = $proposal->vendor;
         $vendorName = $vendor?->name ?? 'Restaurant';
+        $emoji = $vendor?->getEmojiMarkdown() ?? '';
+        $fulfillmentLabel = $this->fulfillmentLabel($proposal->fulfillment_type);
         $orderCount = $proposal->orders_count ?? $proposal->orders->count();
-        $roleLabel = $proposal->fulfillment_type === FulfillmentType::Delivery ? 'orderer' : 'runner';
-        $statusLabel = $this->proposalStatusLabel($proposal);
+
+        $totalEstimated = $proposal->orders->sum('price_estimated');
+        $totalText = $this->formatPrice($totalEstimated > 0 ? (float) $totalEstimated : null);
+
+        $smartParticipants = $this->smartParticipantsText($proposal, 5);
+
+        $sectionText = "{$emoji}*{$vendorName}* — {$fulfillmentLabel}";
+        $sectionText .= "\n{$orderCount} commande(s) · {$totalText}";
+
+        if ($smartParticipants) {
+            $sectionText .= "\n{$smartParticipants}";
+        }
+
+        $myOrderInThisProposal = $proposal->orders->first(
+            fn ($order) => $order->provider_user_id === $context->userId
+        );
+
+        if ($myOrderInThisProposal) {
+            $description = strlen($myOrderInThisProposal->description) > 50
+                ? substr($myOrderInThisProposal->description, 0, 47).'...'
+                : $myOrderInThisProposal->description;
+
+            $priceText = $this->formatPrice(
+                $myOrderInThisProposal->price_estimated ? (float) $myOrderInThisProposal->price_estimated : null
+            );
+
+            $orderLine = "\n\nTa commande : _{$description}_";
+            if ($priceText !== '-') {
+                $orderLine .= " — {$priceText}";
+            }
+
+            $sectionText .= $orderLine;
+        }
 
         $blocks = [
             [
@@ -565,26 +558,32 @@ class DashboardBlockBuilder
                 'block_id' => "in_charge_{$proposal->id}",
                 'text' => [
                     'type' => 'mrkdwn',
-                    'text' => "*Commande en cours - prise en charge par vous*\n*{$vendorName}* | {$orderCount} commande(s) | {$statusLabel}",
+                    'text' => $sectionText,
                 ],
             ],
-            [
-                'type' => 'actions',
-                'block_id' => "in_charge_actions_{$proposal->id}",
-                'elements' => [
-                    $this->button(
-                        'Voir le recapitulatif',
-                        SlackAction::ProposalOpenRecap->value,
-                        (string) $proposal->id
-                    ),
-                    $this->button(
-                        'Cloturer cette commande',
-                        SlackAction::ProposalClose->value,
-                        (string) $proposal->id,
-                        'danger'
-                    ),
-                ],
-            ],
+        ];
+
+        $elements = [];
+
+        if ($myOrderInThisProposal && $context->state->allowsActions()) {
+            $elements[] = $this->button(
+                'Modifier',
+                SlackAction::OrderOpenEdit->value,
+                (string) $myOrderInThisProposal->id,
+                'primary'
+            );
+        }
+
+        $elements[] = $this->button(
+            'Voir le recap',
+            SlackAction::ProposalOpenRecap->value,
+            (string) $proposal->id
+        );
+
+        $blocks[] = [
+            'type' => 'actions',
+            'block_id' => "in_charge_actions_{$proposal->id}",
+            'elements' => $elements,
         ];
 
         return $blocks;
@@ -671,17 +670,28 @@ class DashboardBlockBuilder
         return 'Responsable : _non assigne_';
     }
 
-    private function participantsText(VendorProposal $proposal, int $maxAvatars): string
+    private function smartParticipantsText(VendorProposal $proposal, int $maxAvatars): string
     {
         $orders = $proposal->orders;
         if ($orders->isEmpty()) {
             return '';
         }
 
-        $userIds = $orders->pluck('provider_user_id')->unique()->take($maxAvatars);
-        $avatars = $userIds->map(fn ($id) => "<@{$id}>")->implode(' ');
+        $responsibleIds = collect([$proposal->runner_user_id, $proposal->orderer_user_id])
+            ->filter()
+            ->unique();
 
-        $remaining = $orders->count() - $maxAvatars;
+        $userIds = $orders->pluck('provider_user_id')
+            ->unique()
+            ->reject(fn ($id) => $responsibleIds->contains($id));
+
+        if ($userIds->isEmpty()) {
+            return '';
+        }
+
+        $avatars = $userIds->take($maxAvatars)->map(fn ($id) => "<@{$id}>")->implode(' ');
+
+        $remaining = $userIds->count() - $maxAvatars;
         if ($remaining > 0) {
             $avatars .= " +{$remaining}";
         }
@@ -699,7 +709,27 @@ class DashboardBlockBuilder
             return 'Verrouillee';
         }
 
-        return 'En cours';
+        $status = 'En cours';
+
+        $deadline = $this->earliestDeadline($context);
+        if ($deadline) {
+            $status .= " · Deadline {$deadline}";
+        }
+
+        return $status;
+    }
+
+    private function earliestDeadline(DashboardContext $context): ?string
+    {
+        if ($context->openProposals->isEmpty()) {
+            return null;
+        }
+
+        return $context->openProposals
+            ->pluck('deadline_time')
+            ->filter()
+            ->sort()
+            ->first();
     }
 
     private function proposalStatusLabel(VendorProposal $proposal): string

@@ -1,0 +1,24 @@
+{
+  "version": 3,
+  "skills": {
+    "slack-expert": {
+      "source": "404kidwiz/claude-supercode-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/404kidwiz/claude-supercode-skills.git",
+      "skillPath": "slack-expert-skill/SKILL.md",
+      "skillFolderHash": "ec9e2443a69be9a4c0609f765c4ae2267fd29e19",
+      "installedAt": "2026-02-22T09:17:09.634Z",
+      "updatedAt": "2026-02-22T09:17:09.634Z"
+    },
+    "ui-ux-pro-max": {
+      "source": "openclaw/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/openclaw/skills.git",
+      "skillPath": "skills/ahump20/ui-ux-pro-max-2/SKILL.md",
+      "skillFolderHash": "2517444fcb8f57300f8e4be7046911f8ad5eb267",
+      "installedAt": "2026-02-22T09:22:21.981Z",
+      "updatedAt": "2026-02-22T09:22:21.981Z"
+    }
+  },
+  "dismissed": {}
+}

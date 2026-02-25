@@ -96,7 +96,8 @@ class DashboardBlockBuilderTest extends TestCase
     public function test_s4_modal_shows_in_charge_block_with_recap_and_close(): void
     {
         $session = $this->createTodaySession();
-        VendorProposal::factory()->for($session)->create([
+        $vendor = Vendor::factory()->for($session->organization)->create(['name' => 'Sushi Shop']);
+        VendorProposal::factory()->for($session)->for($vendor)->create([
             'status' => ProposalStatus::Ordering,
             'runner_user_id' => $this->userId,
         ]);
@@ -106,9 +107,78 @@ class DashboardBlockBuilderTest extends TestCase
         $modal = $this->builder->buildModal($context);
         $blocks = $modal['blocks'];
 
-        $this->assertBlockContainsText($blocks, 'prise en charge par vous');
+        $this->assertBlockContainsText($blocks, 'Sushi Shop');
+        $this->assertBlockContainsText($blocks, 'commande(s)');
         $this->assertBlockContainsAction($blocks, SlackAction::ProposalOpenRecap->value);
-        $this->assertBlockContainsAction($blocks, SlackAction::ProposalClose->value);
+        $this->assertBlockDoesNotContainAction($blocks, SlackAction::ProposalClose->value);
+    }
+
+    public function test_s4_modal_shows_inline_order_and_total_when_user_ordered_in_own_proposal(): void
+    {
+        $session = $this->createTodaySession();
+        $vendor = Vendor::factory()->for($session->organization)->create(['name' => 'Pizza Palace']);
+        $proposal = VendorProposal::factory()->for($session)->for($vendor)->create([
+            'status' => ProposalStatus::Open,
+            'runner_user_id' => $this->userId,
+        ]);
+        Order::factory()->for($proposal)->create([
+            'organization_id' => $session->organization_id,
+            'provider_user_id' => $this->userId,
+            'description' => 'Margherita',
+            'price_estimated' => 12.50,
+        ]);
+        Order::factory()->for($proposal)->create([
+            'organization_id' => $session->organization_id,
+            'provider_user_id' => 'U_OTHER',
+            'description' => 'Calzone',
+            'price_estimated' => 14.00,
+        ]);
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+        $blocks = $modal['blocks'];
+        $blocksJson = json_encode($blocks);
+
+        $this->assertBlockContainsText($blocks, 'Pizza Palace');
+        $this->assertBlockContainsText($blocks, '2 commande(s)');
+        $this->assertBlockContainsText($blocks, '26.50 EUR');
+        $this->assertBlockContainsText($blocks, 'Ta commande');
+        $this->assertBlockContainsText($blocks, 'Margherita');
+        $this->assertBlockContainsAction($blocks, SlackAction::OrderOpenEdit->value);
+        $this->assertStringNotContainsString('"style":"danger"', $blocksJson);
+    }
+
+    public function test_s4_modal_has_no_footer(): void
+    {
+        $session = $this->createTodaySession();
+        VendorProposal::factory()->for($session)->create([
+            'status' => ProposalStatus::Open,
+            'runner_user_id' => $this->userId,
+        ]);
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+        $blocks = $modal['blocks'];
+
+        $this->assertBlockDoesNotContainAction($blocks, SlackAction::DashboardStartFromCatalog->value);
+        $this->assertBlockDoesNotContainAction($blocks, SlackAction::QuickRunOpen->value);
+    }
+
+    public function test_header_shows_deadline_when_proposals_exist(): void
+    {
+        $session = $this->createTodaySession();
+        VendorProposal::factory()->for($session)->create([
+            'status' => ProposalStatus::Open,
+            'deadline_time' => '12:30',
+        ]);
+
+        $context = $this->resolver->resolve($session, $this->userId);
+
+        $modal = $this->builder->buildModal($context);
+
+        $this->assertBlockContainsText($modal['blocks'], 'Deadline 12:30');
     }
 
     public function test_s5_modal_shows_relaunch_action(): void
@@ -262,34 +332,12 @@ class DashboardBlockBuilderTest extends TestCase
         $this->assertBlockContainsText($blocks, 'Deadline 12:00');
     }
 
-    public function test_proposal_card_shows_url_buttons_when_vendor_has_urls(): void
+    public function test_proposal_card_does_not_show_url_buttons(): void
     {
         $session = $this->createTodaySession();
         $vendor = Vendor::factory()->for($session->organization)->create([
             'url_website' => 'https://example.com',
             'url_menu' => 'https://example.com/menu',
-        ]);
-        VendorProposal::factory()->for($session)->for($vendor)->create([
-            'status' => ProposalStatus::Open,
-        ]);
-
-        $context = $this->resolver->resolve($session, $this->userId);
-
-        $modal = $this->builder->buildModal($context);
-        $blocksJson = json_encode($modal['blocks']);
-
-        $this->assertStringContainsString('"text":"Site web"', $blocksJson);
-        $this->assertStringContainsString('"text":"Menu PDF"', $blocksJson);
-        $this->assertStringContainsString('https:\/\/example.com', $blocksJson);
-        $this->assertStringContainsString('https:\/\/example.com\/menu', $blocksJson);
-    }
-
-    public function test_proposal_card_hides_url_buttons_when_vendor_has_no_urls(): void
-    {
-        $session = $this->createTodaySession();
-        $vendor = Vendor::factory()->for($session->organization)->create([
-            'url_website' => null,
-            'url_menu' => null,
         ]);
         VendorProposal::factory()->for($session)->for($vendor)->create([
             'status' => ProposalStatus::Open,

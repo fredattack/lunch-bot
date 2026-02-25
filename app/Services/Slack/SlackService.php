@@ -90,20 +90,17 @@ class SlackService
 
     public function isAdmin(string $userId): bool
     {
-        $adminIds = config('slack.admin_user_ids', []);
+        return once(function () use ($userId) {
+            $adminIds = config('slack.admin_user_ids', []);
 
-        if (in_array($userId, $adminIds, true)) {
-            return true;
-        }
+            if (in_array($userId, $adminIds, true)) {
+                return true;
+            }
 
-        $organization = Organization::current();
-        if ($organization?->installation?->installed_by_provider_user_id === $userId) {
-            return true;
-        }
+            $organization = Organization::current();
 
-        $user = $this->usersInfo($userId);
-
-        return (bool) ($user['is_admin'] ?? false) || (bool) ($user['is_owner'] ?? false);
+            return $organization?->installation?->installed_by_provider_user_id === $userId;
+        });
     }
 
     public function getFileInfo(string $fileId): ?array

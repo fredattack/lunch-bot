@@ -252,34 +252,13 @@ class SlackServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
-    public function test_is_admin_returns_true_for_slack_admin(): void
+    public function test_is_admin_returns_true_for_installation_owner(): void
     {
         config(['slack.admin_user_ids' => []]);
 
-        Http::fake([
-            'slack.com/api/users.info' => Http::response([
-                'ok' => true,
-                'user' => ['id' => 'U_SLACK_ADMIN', 'is_admin' => true, 'is_owner' => false],
-            ]),
-        ]);
+        $installerId = $this->organization->installation->installed_by_provider_user_id;
 
-        $result = $this->service->isAdmin('U_SLACK_ADMIN');
-
-        $this->assertTrue($result);
-    }
-
-    public function test_is_admin_returns_true_for_slack_owner(): void
-    {
-        config(['slack.admin_user_ids' => []]);
-
-        Http::fake([
-            'slack.com/api/users.info' => Http::response([
-                'ok' => true,
-                'user' => ['id' => 'U_OWNER', 'is_admin' => false, 'is_owner' => true],
-            ]),
-        ]);
-
-        $result = $this->service->isAdmin('U_OWNER');
+        $result = $this->service->isAdmin($installerId);
 
         $this->assertTrue($result);
     }
@@ -288,16 +267,20 @@ class SlackServiceTest extends TestCase
     {
         config(['slack.admin_user_ids' => []]);
 
-        Http::fake([
-            'slack.com/api/users.info' => Http::response([
-                'ok' => true,
-                'user' => ['id' => 'U_REGULAR', 'is_admin' => false, 'is_owner' => false],
-            ]),
-        ]);
-
         $result = $this->service->isAdmin('U_REGULAR');
 
         $this->assertFalse($result);
+    }
+
+    public function test_is_admin_does_not_call_slack_api(): void
+    {
+        config(['slack.admin_user_ids' => []]);
+
+        Http::fake();
+
+        $this->service->isAdmin('U_UNKNOWN');
+
+        Http::assertNothingSent();
     }
 
     public function test_get_file_info_returns_file_data(): void

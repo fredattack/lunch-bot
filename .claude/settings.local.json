@@ -13,7 +13,10 @@
       "mcp__laravel-boost__tinker",
       "mcp__laravel-boost__get-config",
       "mcp__laravel-boost__database-query",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(npx playwright test:*)",
+      "WebSearch",
+      "Bash(head:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -14,7 +14,7 @@ test.describe('E2E-7.7: Dashboard State Transitions', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
-    let content = await slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal').innerText();
+    let content = await slackPageA.getModalContent();
     expect(content).toContain(DashboardLabels.S1);
 
     await slackPageA.page.keyboard.press('Escape');
@@ -35,7 +35,7 @@ test.describe('E2E-7.7: Dashboard State Transitions', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
-    content = await slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal').innerText();
+    content = await slackPageA.getModalContent();
     // Should no longer be S1
     expect(content).not.toContain(DashboardLabels.S1);
   });
@@ -57,15 +57,11 @@ test.describe('E2E-7.7: Dashboard State Transitions', () => {
     // User B places order (enters S3)
     await openDashboard(slackPageB);
     await assertModalOpen(slackPageB);
-    const orderBtn = slackPageB.page.locator('button:has-text("Commander")').first();
-    if (await orderBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await orderBtn.click();
-      await slackPageB.waitForModal();
-      await slackPageB.fillModalField('description', TestOrders.CALZONE.description);
-      await slackPageB.fillModalField('price_estimated', TestOrders.CALZONE.priceEstimated);
-      await slackPageB.submitModal();
-      await slackPageB.wait(3000);
-    }
+    await slackPageB.clickButton('Commander ici');
+    await slackPageB.fillModalField('description', TestOrders.CALZONE.description);
+    await slackPageB.fillModalField('price_estimated', TestOrders.CALZONE.priceEstimated);
+    await slackPageB.submitModal();
+    await slackPageB.wait(3000);
 
     // User B deletes order (should go back to S2)
     await openDashboard(slackPageB);
@@ -73,17 +69,17 @@ test.describe('E2E-7.7: Dashboard State Transitions', () => {
 
     const editBtn = slackPageB.page.locator('button:has-text("Modifier")').first();
     if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await editBtn.click();
+      await editBtn.click({ force: true });
       await slackPageB.waitForModal();
 
       const deleteBtn = slackPageB.page.locator('button:has-text("Supprimer")').first();
       if (await deleteBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await deleteBtn.click();
+        await deleteBtn.click({ force: true });
         await slackPageB.wait(1000);
 
         const confirmBtn = slackPageB.page.locator('button:has-text("Oui"), button:has-text("Confirmer")').first();
         if (await confirmBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-          await confirmBtn.click();
+          await confirmBtn.click({ force: true });
         }
         await slackPageB.wait(3000);
       }
@@ -93,7 +89,7 @@ test.describe('E2E-7.7: Dashboard State Transitions', () => {
     await openDashboard(slackPageB);
     await assertModalOpen(slackPageB);
 
-    const content = await slackPageB.page.locator('[data-qa="modal"], .p-block_kit_modal').innerText();
+    const content = await slackPageB.getModalContent();
     // Should show proposal list without user's order
     expect(content).toBeTruthy();
   });

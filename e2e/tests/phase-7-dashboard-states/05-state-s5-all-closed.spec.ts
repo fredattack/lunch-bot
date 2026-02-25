@@ -27,13 +27,17 @@ test.describe('E2E-7.5: Dashboard State S5 — All Closed', () => {
 
     const closeBtn = slackPageA.page.locator('button:has-text("Cloturer")').first();
     if (await closeBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await closeBtn.click();
+      await closeBtn.click({ force: true });
       await slackPageA.wait(3000);
     }
 
     // Re-open dashboard — should be S5 (all proposals closed)
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
+
+    // Capture Dashboard S5
+    const modal = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
+    await modal.screenshot({ path: 'Docs/screens/19-dashboard-s5-all-closed.png' });
 
     // Should show "Relancer" option
     const relaunchBtn = slackPageA.page.locator('button:has-text("Relancer")').first();

@@ -15,13 +15,13 @@ test.describe('E2E-5.2: Edit Vendor', () => {
     // Open vendor list
     const vendorListBtn = slackPageA.page.locator('button:has-text("Voir les restaurants"), button:has-text("restaurants")').first();
     if (await vendorListBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await vendorListBtn.click();
+      await vendorListBtn.click({ force: true });
       await slackPageA.waitForModal();
 
       // Click edit on a vendor
       const editBtn = slackPageA.page.locator('button:has-text("Modifier"), button:has-text("Editer")').first();
       if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await editBtn.click();
+        await editBtn.click({ force: true });
         await slackPageA.waitForModal();
 
         // Modify name

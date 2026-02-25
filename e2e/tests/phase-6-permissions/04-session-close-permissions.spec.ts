@@ -27,7 +27,7 @@ test.describe('E2E-6.4: Session Close Permissions', () => {
 
     const closeSessionBtn = slackPageB.page.locator('button:has-text("Cloturer la journee")').first();
     if (await closeSessionBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await closeSessionBtn.click();
+      await closeSessionBtn.click({ force: true });
       await slackPageB.wait(2000);
       await assertEphemeralVisible(slackPageB, 'runner/orderer ou un admin');
     }
@@ -53,7 +53,7 @@ test.describe('E2E-6.4: Session Close Permissions', () => {
 
     const closeSessionBtn = slackPageAdmin.page.locator('button:has-text("Cloturer la journee")').first();
     if (await closeSessionBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await closeSessionBtn.click();
+      await closeSessionBtn.click({ force: true });
       await slackPageAdmin.wait(3000);
       // Should succeed — no error message
     }

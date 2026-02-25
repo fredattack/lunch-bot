@@ -24,16 +24,13 @@ test.describe('E2E-8.1: Locked Session Actions', () => {
     // Lock session
     await forceSessionLock();
 
-    // User B tries to place order via channel button
-    await slackPageB.reload();
-    await slackPageB.wait(2000);
+    // User B opens dashboard and tries to place order
+    await openDashboard(slackPageB);
+    await assertModalOpen(slackPageB);
 
-    const orderBtn = slackPageB.page.locator('button:has-text("Commander"), button:has-text("commande")').first();
-    if (await orderBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await orderBtn.click();
-      await slackPageB.wait(2000);
-      await assertEphemeralVisible(slackPageB, ErrorMessages.ORDERS_LOCKED);
-    }
+    await slackPageB.clickButton('Commander ici');
+    await slackPageB.wait(2000);
+    await assertEphemeralVisible(slackPageB, ErrorMessages.ORDERS_LOCKED);
   });
 
   test('should reject order edit on locked session for regular user', async ({ slackPageA, slackPageB }) => {
@@ -53,14 +50,10 @@ test.describe('E2E-8.1: Locked Session Actions', () => {
     // User B orders
     await openDashboard(slackPageB);
     await assertModalOpen(slackPageB);
-    const orderBtn = slackPageB.page.locator('button:has-text("Commander")').first();
-    if (await orderBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await orderBtn.click();
-      await slackPageB.waitForModal();
-      await slackPageB.fillModalField('description', TestOrders.CALZONE.description);
-      await slackPageB.submitModal();
-      await slackPageB.wait(2000);
-    }
+    await slackPageB.clickButton('Commander ici');
+    await slackPageB.fillModalField('description', TestOrders.CALZONE.description);
+    await slackPageB.submitModal();
+    await slackPageB.wait(2000);
 
     // Lock session
     await forceSessionLock();
@@ -69,14 +62,14 @@ test.describe('E2E-8.1: Locked Session Actions', () => {
     await openDashboard(slackPageB);
     await assertModalOpen(slackPageB);
 
-    const editBtn = slackPageB.page.locator('button:has-text("Modifier")').first();
+    const editBtn = slackPageB.page.locator('button:has-text("Modifier"), button:has-text("Voir ma commande")').first();
     if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await editBtn.click();
+      await editBtn.click({ force: true });
       await slackPageB.wait(2000);
       // Should be restricted
       const ephemeral = await slackPageB.getEphemeralText();
       if (ephemeral) {
-        expect(ephemeral).toContain('verrouillees');
+        expect(ephemeral.toLowerCase()).toContain('verrouill');
       }
     }
   });

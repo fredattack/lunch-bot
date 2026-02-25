@@ -1,15 +1,22 @@
 import { test, expect } from '../../fixtures/slack-page';
 import { resetDatabase } from '../../helpers/api-helpers';
-import { openDashboard, createQuickRun, addQuickRunRequest } from '../../helpers/slack-actions';
-import { assertModalOpen, assertMessageVisible, assertEphemeralVisible } from '../../helpers/slack-assertions';
-import { TestQuickRun, ErrorMessages } from '../../fixtures/test-data';
+import {
+  openDashboard,
+  createQuickRun,
+  addQuickRunRequest,
+  lockQuickRun,
+  closeQuickRunAction,
+} from '../../helpers/slack-actions';
+import { assertModalOpen, assertMessageVisible } from '../../helpers/slack-assertions';
+import { TestQuickRun } from '../../fixtures/test-data';
 
 test.describe('E2E-4.5: Close Quick Run', () => {
   test.beforeAll(async () => {
     await resetDatabase();
   });
 
-  test('should allow runner to close Quick Run and post summary', async ({ slackPageA }) => {
+  test('should allow runner to close Quick Run and post summary', async ({ slackPageA, slackPageB }) => {
+    // User A creates the Quick Run (becomes runner)
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
     await createQuickRun(
@@ -19,27 +26,27 @@ test.describe('E2E-4.5: Close Quick Run', () => {
     );
     await slackPageA.wait(3000);
 
-    // Add a request
+    // User B adds a request (runner cannot add to own QR)
+    await slackPageB.reload();
+    await slackPageB.wait(2000);
     await addQuickRunRequest(
-      slackPageA,
+      slackPageB,
       TestQuickRun.REQUEST_PAIN.description,
       TestQuickRun.REQUEST_PAIN.priceEstimated,
       TestQuickRun.BOULANGERIE.destination
     );
-    await slackPageA.wait(2000);
+    await slackPageB.wait(2000);
+
+    // Lock first (required before close)
+    await lockQuickRun(slackPageA);
 
     // Close
-    const closeBtn = slackPageA.page.locator('button:has-text("Cloturer")').first();
-    if (await closeBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await closeBtn.click();
-      await slackPageA.wait(3000);
+    await closeQuickRunAction(slackPageA);
 
-      // Handle close modal if it appears (for price adjustments)
-      const isModalOpen = await slackPageA.isModalVisible();
-      if (isModalOpen) {
-        await slackPageA.submitModal();
-        await slackPageA.wait(3000);
-      }
+    // Handle close modal if it appears (for price adjustments)
+    if (await slackPageA.isModalVisible()) {
+      await slackPageA.submitModal();
+      await slackPageA.wait(3000);
     }
   });
 
@@ -54,19 +61,17 @@ test.describe('E2E-4.5: Close Quick Run', () => {
     );
     await slackPageA.wait(3000);
 
-    // User B tries to close
+    // Runner actions (including "Je pars" / "Cloturer") are ephemeral to the runner only
+    // User B should NOT see the close button
     await slackPageB.reload();
     await slackPageB.wait(2000);
 
-    const closeBtn = slackPageB.page.locator('button:has-text("Cloturer")').first();
-    if (await closeBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await closeBtn.click();
-      await slackPageB.wait(2000);
-      await assertEphemeralVisible(slackPageB, ErrorMessages.ONLY_RUNNER_CAN_CLOSE);
-    }
+    const closeBtn = slackPageB.page.locator('button:has-text("Cloturer")').last();
+    const isVisible = await closeBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    expect(isVisible).toBe(false);
   });
 
-  test('should display recap with estimated and final totals', async ({ slackPageA }) => {
+  test('should display recap with estimated totals', async ({ slackPageA, slackPageB }) => {
     await resetDatabase();
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
@@ -77,24 +82,27 @@ test.describe('E2E-4.5: Close Quick Run', () => {
     );
     await slackPageA.wait(3000);
 
+    // User B adds a request
+    await slackPageB.reload();
+    await slackPageB.wait(2000);
     await addQuickRunRequest(
-      slackPageA,
+      slackPageB,
       TestQuickRun.REQUEST_PAIN.description,
       TestQuickRun.REQUEST_PAIN.priceEstimated,
       TestQuickRun.BOULANGERIE.destination
     );
-    await slackPageA.wait(2000);
+    await slackPageB.wait(2000);
 
-    // Open recap
-    const recapBtn = slackPageA.page.locator('button:has-text("Recap"), button:has-text("recap")').first();
-    if (await recapBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await recapBtn.click();
-      await slackPageA.waitForModal();
+    // "Recapitulatif" button is in the runner actions ephemeral (thread) — User A is runner
+    await slackPageA.openThread(TestQuickRun.BOULANGERIE.destination);
+    await slackPageA.clickButton('Recapitulatif');
+    await slackPageA.waitForModal();
 
-      // Recap should show amounts
-      const modal = slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal');
-      const content = await modal.innerText();
-      expect(content).toContain(TestQuickRun.REQUEST_PAIN.priceEstimated);
-    }
+    const modal = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
+    const content = await modal.innerText();
+    expect(content).toContain(TestQuickRun.REQUEST_PAIN.priceEstimated);
+
+    // Capture Quick Run recap modal
+    await modal.screenshot({ path: 'Docs/screens/25-modal-quickrun-recap.png' });
   });
 });

@@ -66,19 +66,13 @@ test.describe('E2E-9.3: Multi-Proposal Session with 4 Users', () => {
     await assertModalOpen(slackPageAdmin);
 
     // Admin should see both proposals — order on the sushi one
-    const sushiOrderBtn = slackPageAdmin.page
-      .locator('button:has-text("Commander")')
-      .first();
-    if (await sushiOrderBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await sushiOrderBtn.click();
-      await slackPageAdmin.waitForModal();
-      await placeOrder(
-        slackPageAdmin,
-        TestOrders.EDAMAME.description,
-        TestOrders.EDAMAME.priceEstimated
-      );
-      await slackPageAdmin.wait(3_000);
-    }
+    await slackPageAdmin.clickButton('Commander ici');
+    await placeOrder(
+      slackPageAdmin,
+      TestOrders.EDAMAME.description,
+      TestOrders.EDAMAME.priceEstimated
+    );
+    await slackPageAdmin.wait(3_000);
 
     // ── User A also orders from Proposal 2 (Sushi) ──
     await slackPageA.reload();
@@ -86,13 +80,9 @@ test.describe('E2E-9.3: Multi-Proposal Session with 4 Users', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
-    const sushiBtn = slackPageA.page.locator('button:has-text("Commander")').first();
-    if (await sushiBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await sushiBtn.click();
-      await slackPageA.waitForModal();
-      await placeOrder(slackPageA, TestOrders.SALMON_ROLL.description, TestOrders.SALMON_ROLL.priceEstimated);
-      await slackPageA.wait(3_000);
-    }
+    await slackPageA.clickButton('Commander ici');
+    await placeOrder(slackPageA, TestOrders.SALMON_ROLL.description, TestOrders.SALMON_ROLL.priceEstimated);
+    await slackPageA.wait(3_000);
 
     // ══════════════════════════════════════════════════════════════
     // CLOSE PROPOSAL 1 (Pizza) — User A is runner
@@ -102,7 +92,7 @@ test.describe('E2E-9.3: Multi-Proposal Session with 4 Users', () => {
 
     const closePizzaBtn = slackPageA.page.locator('button:has-text("Cloturer")').first();
     if (await closePizzaBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await closePizzaBtn.click();
+      await closePizzaBtn.click({ force: true });
       await slackPageA.wait(3_000);
     }
 
@@ -121,7 +111,7 @@ test.describe('E2E-9.3: Multi-Proposal Session with 4 Users', () => {
 
     const closeSushiBtn = slackPageC.page.locator('button:has-text("Cloturer")').first();
     if (await closeSushiBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await closeSushiBtn.click();
+      await closeSushiBtn.click({ force: true });
       await slackPageC.wait(3_000);
     }
 

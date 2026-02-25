@@ -1,8 +1,8 @@
 # Roadmap - Lunch Bot
 
-**Date** : 15 fevrier 2026
+**Date** : 22 fevrier 2026
 **Structure** : EPICs > Stories
-**Phases** : MVP → Phase 1 (Retention) → Phase 2 (Social & Discovery)
+**Phases** : MVP → Phase 1a (Quick Wins) → Phase 1b (Closing & Payment) → Phase 1c (Valeur Individuelle) → Phase 1d (Visibilite Collective & Admin Setup) → Phase 2 (Social & Discovery)
 
 > Les stories marquees DONE sont deja implementees et testees. Les EPICs peuvent contenir un mix de DONE et TODO.
 
@@ -59,8 +59,8 @@
 | 3.5 | Si je suis runner (S4), je vois les outils de gestion (recap, cloture, delegation) | MVP | DONE |
 | 3.6 | Si tout est cloture (S5), je vois le resume et un bouton pour relancer | MVP | DONE |
 | 3.7 | Pour un jour passe (S6), je vois l'historique en lecture seule | MVP | DONE |
-| 3.8 | En tant qu'utilisateur, je peux consulter l'historique de mes commandes passees | Phase 1 | TODO |
-| 3.9 | En tant qu'utilisateur, je peux recommander en 1 clic ma commande habituelle (favoris) | Phase 1 | TODO |
+| 3.8 | En tant qu'utilisateur, je peux consulter l'historique de mes commandes passees | Phase 1c | TODO |
+| 3.9 | En tant qu'utilisateur, je peux recommander en 1 clic ma commande habituelle (favoris) | Phase 1c | TODO |
 
 ---
 
@@ -76,10 +76,10 @@
 | 4.4 | A la deadline, le bot poste "Commandes verrouillees" | MVP | DONE |
 | 4.5 | Quand un role est delegue, le bot annonce "Role transfere de @X a @Y" | MVP | DONE |
 | 4.6 | A la cloture, le bot poste le recap avec les montants dus par personne | MVP | DONE |
-| 4.7 | 5-10 min avant la deadline, le bot envoie un rappel : "Plus que X min, Y collegues ont commande" | Phase 1 | TODO |
-| 4.8 | Quand un utilisateur commande pour la premiere fois, le bot poste un message de bienvenue | Phase 1 | TODO |
-| 4.9 | Chaque vendredi, le bot poste un recap hebdomadaire (stats, top restos, MVP runner) | Phase 1 | TODO |
-| 4.10 | A la cloture, le recap inclut des stats enrichies (moyenne par personne, runner mis en avant) | Phase 1 | TODO |
+| 4.7 | 5-10 min avant la deadline, le bot envoie un rappel : "Plus que X min, Y collegues ont commande" | Phase 1a | TODO |
+| 4.8 | Quand un utilisateur commande pour la premiere fois, le bot poste un message de bienvenue | Phase 1a | TODO |
+| 4.9 | Chaque vendredi, le bot poste un recap hebdomadaire (stats, top restos, MVP runner) | Phase 1d | TODO |
+| 4.10 | A la cloture, le recap inclut des stats enrichies (moyenne par personne, runner mis en avant) | Phase 1d | TODO |
 
 ---
 
@@ -109,8 +109,8 @@
 |---|-------|-------|--------|
 | 6.1 | Le bot cree automatiquement une session dejeuner et poste le kickoff chaque jour ouvrable a l'heure configuree | MVP | DONE |
 | 6.2 | Le bot verrouille automatiquement les sessions dont la deadline est passee (check chaque minute) | MVP | DONE |
-| 6.3 | Le bot envoie un rappel dans le channel X minutes avant la deadline | Phase 1 | TODO |
-| 6.4 | Le bot poste un recap hebdomadaire chaque vendredi a 16h | Phase 1 | TODO |
+| 6.3 | Le bot envoie un rappel dans le channel X minutes avant la deadline | Phase 1a | TODO |
+| 6.4 | Le bot poste un recap hebdomadaire chaque vendredi a 16h | Phase 1d | TODO |
 | 6.5 | Le bot verrouille automatiquement les Quick Runs dont le delai est expire | MVP | DONE |
 
 ---
@@ -134,12 +134,12 @@
 
 | # | Story | Phase | Statut |
 |---|-------|-------|--------|
-| 8.1 | En tant qu'utilisateur, je peux sauvegarder ma commande habituelle pour un restaurant et la reutiliser en 1 clic | Phase 1 | TODO |
-| 8.2 | En tant qu'utilisateur, je peux consulter l'historique de mes commandes passees (restos, plats, montants) | Phase 1 | TODO |
-| 8.3 | En tant qu'utilisateur, je recois un rappel avant la deadline si je n'ai pas encore commande | Phase 1 | TODO |
-| 8.4 | En tant qu'utilisateur, je vois un recap hebdomadaire dans le channel avec les stats de la semaine | Phase 1 | TODO |
-| 8.5 | En tant qu'utilisateur, quand je commande pour la premiere fois, je vois un message de bienvenue dans le channel | Phase 1 | TODO |
-| 8.6 | En tant qu'utilisateur, a la cloture je vois un recap enrichi (nb commandes, moyenne, runner mis en avant) | Phase 1 | TODO |
+| 8.1 | En tant qu'utilisateur, je peux sauvegarder ma commande habituelle pour un restaurant et la reutiliser en 1 clic | Phase 1c | TODO |
+| 8.2 | En tant qu'utilisateur, je peux consulter l'historique de mes commandes passees (restos, plats, montants) | Phase 1c | TODO |
+| 8.3 | En tant qu'utilisateur, je recois un rappel avant la deadline si je n'ai pas encore commande | Phase 1a | TODO |
+| 8.4 | En tant qu'utilisateur, je vois un recap hebdomadaire dans le channel avec les stats de la semaine | Phase 1d | TODO |
+| 8.5 | En tant qu'utilisateur, quand je commande pour la premiere fois, je vois un message de bienvenue dans le channel | Phase 1a | TODO |
+| 8.6 | En tant qu'utilisateur, a la cloture je vois un recap enrichi (nb commandes, moyenne, runner mis en avant) | Phase 1d | TODO |
 
 ---
 
@@ -154,8 +154,41 @@
 | 9.3 | En tant qu'utilisateur, je peux debloquer des badges (Premiere commande, Explorateur, Runner confirme, Streak) | Phase 2 | TODO |
 | 9.4 | En tant qu'utilisateur, apres une commande je peux noter le restaurant (pouce haut/bas) | Phase 2 | TODO |
 | 9.5 | En tant qu'utilisateur, je vois un "Restaurant de la semaine" mis en avant dans le Morning Kick | Phase 2 | TODO |
-| 9.6 | En tant qu'utilisateur, je peux voir ma balance de remboursement avec mes collegues (qui me doit quoi) | Phase 2 | TODO |
-| 9.7 | En tant qu'utilisateur, le bot me rappelle les remboursements en attente | Phase 2 | TODO |
+| 9.6 | En tant qu'utilisateur, le bot me rappelle les remboursements en attente | Phase 2 | TODO |
+
+---
+
+## EPIC 10 : Closing & Payment
+
+> La phase de cloture et de paiement. Faciliter le remboursement entre collegues apres une commande groupee.
+
+| # | Story | Phase | Statut |
+|---|-------|-------|--------|
+| 10.1 | En tant que runner, apres cloture je peux envoyer un message DM individuel a chaque commandeur avec le montant exact a payer | Phase 1b | TODO |
+| 10.2 | Le DM inclut automatiquement le numero de compte bancaire du runner (configurable dans son profil) | Phase 1b | TODO |
+| 10.3 | Le DM inclut un QR code de virement bancaire (EPC QR Code / SCT) pre-rempli avec le montant et la reference | Phase 1b | TODO |
+| 10.4 | En tant que commandeur, je peux cliquer "J'ai paye" dans le DM pour marquer ma dette comme reglee | Phase 1b | TODO |
+| 10.5 | En tant que runner, je vois un tableau de suivi : qui a paye, qui n'a pas encore paye, montant restant | Phase 1b | TODO |
+| 10.6 | En tant que runner, je peux relancer les personnes qui n'ont pas encore paye (bouton "Rappel") | Phase 1b | TODO |
+| 10.7 | En tant qu'utilisateur, je peux configurer mon IBAN/compte bancaire dans mes preferences | Phase 1b | TODO |
+| 10.8 | Balance courante : suivi des dettes cumulees entre utilisateurs avec compensation automatique | Phase 2 | TODO |
+
+---
+
+## EPIC 11 : Admin Dashboard & Configuration
+
+> Un mini dashboard web (Laravel Blade) reserve aux admins pour configurer le bot par tenant. Tous les parametres actuellement dans config/lunch.php deviennent parametrables par tenant via ce dashboard.
+
+| # | Story | Phase | Statut |
+|---|-------|-------|--------|
+| 11.1 | En tant qu'admin, je peux acceder a un mini dashboard web authentifie via Slack OAuth (Sign in with Slack) | Phase 1d | TODO |
+| 11.2 | Les parametres de config/lunch.php (post_time, deadline_time, timezone, channel_id) sont migres en base de donnees et parametrables par tenant | Phase 1d | TODO |
+| 11.3 | En tant qu'admin, je peux configurer les horaires de kickoff, deadline et fuseau horaire via le dashboard | Phase 1d | TODO |
+| 11.4 | En tant qu'admin, je peux activer ou desactiver les features par tenant (rappel pre-deadline, message bienvenue, Friday Digest, Quick Run) | Phase 1d | TODO |
+| 11.5 | En tant qu'admin, je peux personnaliser les messages par defaut du bot (kickoff, rappel, bienvenue, cloture) ou utiliser les messages standard | Phase 2 | TODO |
+| 11.6 | En tant qu'admin, je peux creer des rappels recurrents personnalises avec jour, heure et message (ex: "tous les lundis a 10h15, rappel de commander chez Foodies") | Phase 2 | TODO |
+| 11.7 | En tant qu'admin, je peux configurer le channel Slack cible et voir la liste des administrateurs du tenant | Phase 1d | TODO |
+| 11.8 | En tant qu'admin, je peux configurer les coordonnees bancaires par defaut du tenant (IBAN, nom) pour les runners qui n'ont pas configure les leurs | Phase 2 | TODO |
 
 ---
 
@@ -176,23 +209,49 @@
 
 **MVP 100% termine. 46 stories implementees et testees.**
 
-### Phase 1 - Retention & Engagement
+### Phase 1a - Quick Wins Engagement
+
+| EPIC | Stories TODO |
+|------|-------------|
+| 4 - Messages (rappel pre-deadline, bienvenue) | 2 |
+| 6 - Scheduler (rappel pre-deadline) | 1 |
+| 8 - Retention (rappel, bienvenue) | 2 |
+| **Total Phase 1a** | **5** |
+
+### Phase 1b - Closing & Payment
+
+| EPIC | Stories TODO |
+|------|-------------|
+| 10 - Closing & Payment (DM, QR code, suivi) | 7 |
+| **Total Phase 1b** | **7** |
+
+### Phase 1c - Valeur Individuelle
 
 | EPIC | Stories TODO |
 |------|-------------|
 | 3 - Dashboard (historique, favoris) | 2 |
-| 4 - Messages (rappel, bienvenue, digest, recap) | 4 |
-| 6 - Scheduler (rappel, digest) | 2 |
-| 8 - Retention | 6 |
-| **Total Phase 1** | **14** |
+| 8 - Retention (favoris, historique) | 2 |
+| **Total Phase 1c** | **4** |
+
+### Phase 1d - Visibilite Collective & Admin Setup
+
+| EPIC | Stories TODO |
+|------|-------------|
+| 4 - Messages (digest, recap enrichi) | 2 |
+| 6 - Scheduler (digest) | 1 |
+| 8 - Retention (recap enrichi, digest) | 2 |
+| 11 - Admin Dashboard (auth, config, horaires, toggles, channel) | 5 |
+| **Total Phase 1d** | **10** |
 
 ### Phase 2 - Social & Discovery
 
 | EPIC | Stories TODO |
 |------|-------------|
 | 2 - Catalogue (ratings, suggestions, resto de la semaine) | 3 |
-| 9 - Social & Discovery | 7 |
-| **Total Phase 2** | **10** |
+| 9 - Social & Discovery | 6 |
+| 10 - Closing & Payment (balance courante) | 1 |
+| 11 - Admin Dashboard (messages custom, rappels recurrents, IBAN defaut) | 3 |
+| **Total Phase 2** | **13** |
 
 ---
 
@@ -208,21 +267,39 @@ MVP (46 DONE)
   ├── Scheduler         ██████████████████████████ 3/3
   └── Stabilite         ██████████████████████████ 4/4
 
-Phase 1 - Retention (14 TODO)
-  ├── Favoris / Reorder
-  ├── Historique personnel
+Phase 1a - Quick Wins Engagement (5 TODO)
   ├── Rappel pre-deadline
-  ├── Friday Digest
-  ├── Closing recap enrichi
   └── Message de bienvenue
 
-Phase 2 - Social (10 TODO)
+Phase 1b - Closing & Payment (7 TODO)
+  ├── DM de paiement au commandeur
+  ├── QR code virement bancaire
+  ├── Suivi des paiements
+  ├── Relance impaye
+  └── Configuration IBAN
+
+Phase 1c - Valeur Individuelle (4 TODO)
+  ├── Historique personnel
+  └── Favoris / Reorder
+
+Phase 1d - Visibilite Collective & Admin Setup (10 TODO)
+  ├── Friday Digest
+  ├── Closing recap enrichi
+  ├── Mini dashboard web (auth Slack OAuth)
+  ├── Config par tenant (horaires, deadline, timezone)
+  ├── Feature toggles par tenant
+  └── Gestion channel et admins
+
+Phase 2 - Social & Discovery (13 TODO)
   ├── Morning Kick intelligent
   ├── Rotation runner
   ├── Badges
   ├── Ratings
   ├── Restaurant de la semaine
-  └── Balance de remboursement
+  ├── Balance de remboursement
+  ├── Messages personnalisables par tenant
+  ├── Rappels recurrents personnalises
+  └── IBAN par defaut tenant
 ```
 
-**Le MVP est 100% termine. Les 24 stories restantes sont reparties entre la Phase 1 (Retention, 14 stories) et la Phase 2 (Social & Discovery, 10 stories).**
+**Le MVP est 100% termine. Les 39 stories restantes sont reparties entre la Phase 1a (Quick Wins, 5 stories), Phase 1b (Closing & Payment, 7 stories), Phase 1c (Valeur Individuelle, 4 stories), Phase 1d (Visibilite Collective & Admin Setup, 10 stories) et la Phase 2 (Social & Discovery, 13 stories).**

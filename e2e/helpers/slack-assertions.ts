@@ -70,13 +70,16 @@ export async function assertButtonNotVisible(
   ).not.toBeVisible({ timeout: 5_000 });
 }
 
+function getDialog(slack: SlackPage) {
+  return slack.page.locator('[data-qa="wizard_modal"]').last();
+}
+
 export async function assertDashboardState(
   slack: SlackPage,
   stateLabel: string
 ): Promise<void> {
-  // Dashboard states are reflected in the modal title or a section header
-  const modal = slack.page.locator('[data-qa="modal"], .p-block_kit_modal');
-  await expect(modal).toContainText(stateLabel, { timeout: 10_000 });
+  const dialog = getDialog(slack);
+  await expect(dialog).toContainText(stateLabel, { timeout: 10_000 });
 }
 
 export async function assertOrderInRecap(
@@ -84,9 +87,9 @@ export async function assertOrderInRecap(
   userName: string,
   description: string
 ): Promise<void> {
-  const modal = slack.page.locator('[data-qa="modal"], .p-block_kit_modal');
-  await expect(modal).toContainText(userName, { timeout: 10_000 });
-  await expect(modal).toContainText(description, { timeout: 5_000 });
+  const dialog = getDialog(slack);
+  await expect(dialog).toContainText(userName, { timeout: 10_000 });
+  await expect(dialog).toContainText(description, { timeout: 5_000 });
 }
 
 export async function assertPriceInRecap(
@@ -94,6 +97,6 @@ export async function assertPriceInRecap(
   label: string,
   amount: string
 ): Promise<void> {
-  const modal = slack.page.locator('[data-qa="modal"], .p-block_kit_modal');
-  await expect(modal).toContainText(amount, { timeout: 10_000 });
+  const dialog = getDialog(slack);
+  await expect(dialog).toContainText(amount, { timeout: 10_000 });
 }

@@ -17,7 +17,7 @@ test.describe('E2E-2.1: Propose from Catalog', () => {
     await slackPageA.waitForModal();
 
     // Verify vendor select is visible
-    const modal = slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal');
+    const modal = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
     await expect(modal).toBeVisible();
   });
 

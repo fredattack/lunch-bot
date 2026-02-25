@@ -25,7 +25,7 @@ test.describe('E2E-7.4: Dashboard State S4 — In Charge', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
-    const modal = slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal');
+    const modal = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
     const content = await modal.innerText();
     // Should show runner management buttons
     expect(content).toBeTruthy();
@@ -35,9 +35,10 @@ test.describe('E2E-7.4: Dashboard State S4 — In Charge', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
-    // At least one management button should be visible
-    const recapBtn = slackPageA.page.locator('button:has-text("Recap"), button:has-text("recapitulatif")').first();
-    const closeBtn = slackPageA.page.locator('button:has-text("Cloturer")').first();
+    // At least one management button should be visible inside the modal
+    const modal = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
+    const recapBtn = modal.locator('button:has-text("Recap"), button:has-text("recapitulatif")').first();
+    const closeBtn = modal.locator('button:has-text("Cloturer")').first();
 
     const hasRecap = await recapBtn.isVisible({ timeout: 3000 }).catch(() => false);
     const hasClose = await closeBtn.isVisible({ timeout: 3000 }).catch(() => false);

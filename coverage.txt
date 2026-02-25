@@ -1,0 +1,104 @@
+
+
+[1;37;40mCode Coverage Report:        [0m
+[1;37;40m  2026-02-15 07:47:53        [0m
+[1;37;40m                             [0m
+[1;37;40m Summary:                    [0m
+[30;43m  Classes: 62.50% (30/48)    [0m
+[30;43m  Methods: 64.84% (166/256)  [0m
+[30;43m  Lines:   85.95% (2868/3337)[0m
+
+App\Actions\LunchSession\CloseLunchSession
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% (  4/  4)[0m
+App\Actions\LunchSession\CreateLunchSession
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% ( 12/ 12)[0m
+App\Actions\LunchSession\LockExpiredSessions
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% ( 10/ 10)[0m
+App\Actions\Order\CreateOrder
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% ( 16/ 16)[0m
+App\Actions\Order\DeleteOrder
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% (  6/  6)[0m
+App\Actions\Order\UpdateOrder
+  [30;42mMethods: 100.00% ( 4/ 4)[0m   [30;42mLines: 100.00% ( 26/ 26)[0m
+App\Actions\VendorProposal\AssignRole
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% ( 17/ 17)[0m
+App\Actions\VendorProposal\DelegateRole
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% ( 15/ 15)[0m
+App\Actions\VendorProposal\ProposeRestaurant
+  [37;41mMethods:  50.00% ( 2/ 4)[0m   [30;42mLines:  92.19% ( 59/ 64)[0m
+App\Actions\VendorProposal\ProposeVendor
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% ( 24/ 24)[0m
+App\Actions\Vendor\CreateVendor
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% (  7/  7)[0m
+App\Actions\Vendor\UpdateVendor
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% (  3/  3)[0m
+App\Authorization\Actor
+  [30;42mMethods: 100.00% ( 8/ 8)[0m   [30;42mLines: 100.00% (  8/  8)[0m
+App\Console\Commands\SlackDumpUsers
+  [37;41mMethods:   0.00% ( 0/ 1)[0m   [30;43mLines:  84.51% ( 60/ 71)[0m
+App\Enums\DashboardState
+  [30;42mMethods: 100.00% ( 3/ 3)[0m   [30;42mLines: 100.00% ( 10/ 10)[0m
+App\Enums\OrderingMode
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% (  4/  4)[0m
+App\Enums\SlackAction
+  [30;42mMethods: 100.00% ( 5/ 5)[0m   [30;42mLines: 100.00% ( 32/ 32)[0m
+App\Http\Controllers\SlackController
+  [37;41mMethods:  50.00% ( 2/ 4)[0m   [30;43mLines:  68.00% ( 17/ 25)[0m
+App\Http\Middleware\ExtractsSlackTeamId
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% (  9/  9)[0m
+App\Http\Middleware\LogRequest
+  [37;41mMethods:  50.00% ( 3/ 6)[0m   [30;43mLines:  75.19% (100/133)[0m
+App\Http\Middleware\ResolveOrganization
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% ( 16/ 16)[0m
+App\Http\Middleware\VerifySlackSignature
+  [30;42mMethods: 100.00% ( 2/ 2)[0m   [30;42mLines: 100.00% ( 24/ 24)[0m
+App\Models\Concerns\BelongsToOrganization
+  [30;42mMethods: 100.00% ( 2/ 2)[0m   [30;42mLines: 100.00% (  6/  6)[0m
+App\Models\LunchSession
+  [30;42mMethods: 100.00% ( 4/ 4)[0m   [30;42mLines: 100.00% (  4/  4)[0m
+App\Models\Order
+  [30;42mMethods: 100.00% ( 2/ 2)[0m   [30;42mLines: 100.00% (  2/  2)[0m
+App\Models\Organization
+  [30;42mMethods: 100.00% ( 6/ 6)[0m   [30;42mLines: 100.00% ( 10/ 10)[0m
+App\Models\OrganizationInstallation
+  [30;42mMethods: 100.00% ( 2/ 2)[0m   [30;42mLines: 100.00% (  7/  7)[0m
+App\Models\Scopes\OrganizationScope
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% (  3/  3)[0m
+App\Models\Vendor
+  [37;41mMethods:  50.00% ( 2/ 4)[0m   [30;43mLines:  54.55% (  6/ 11)[0m
+App\Models\VendorProposal
+  [30;42mMethods: 100.00% ( 7/ 7)[0m   [30;42mLines: 100.00% ( 11/ 11)[0m
+App\Policies\OrderPolicy
+  [37;41mMethods:  50.00% ( 1/ 2)[0m   [30;42mLines:  92.31% ( 12/ 13)[0m
+App\Policies\VendorPolicy
+  [30;42mMethods: 100.00% ( 3/ 3)[0m   [30;42mLines: 100.00% (  7/  7)[0m
+App\Policies\VendorProposalPolicy
+  [30;42mMethods: 100.00% ( 3/ 3)[0m   [30;42mLines: 100.00% ( 10/ 10)[0m
+App\Providers\AppServiceProvider
+  [30;42mMethods: 100.00% ( 2/ 2)[0m   [30;42mLines: 100.00% (  4/  4)[0m
+App\Services\Slack\DashboardBlockBuilder
+  [37;41mMethods:  44.00% (11/25)[0m   [30;43mLines:  73.01% (349/478)[0m
+App\Services\Slack\DashboardStateResolver
+  [30;43mMethods:  88.89% ( 8/ 9)[0m   [30;42mLines:  98.65% ( 73/ 74)[0m
+App\Services\Slack\Data\DashboardContext
+  [30;42mMethods: 100.00% ( 9/ 9)[0m   [30;42mLines: 100.00% ( 18/ 18)[0m
+App\Services\Slack\Handlers\BaseInteractionHandler
+  [30;43mMethods:  76.92% (10/13)[0m   [30;43mLines:  89.80% ( 44/ 49)[0m
+App\Services\Slack\Handlers\OrderInteractionHandler
+  [37;41mMethods:   6.67% ( 1/15)[0m   [30;43mLines:  70.31% (135/192)[0m
+App\Services\Slack\Handlers\ProposalInteractionHandler
+  [37;41mMethods:   9.52% ( 2/21)[0m   [30;43mLines:  72.32% (209/289)[0m
+App\Services\Slack\Handlers\SessionInteractionHandler
+  [30;43mMethods:  66.67% ( 4/ 6)[0m   [30;42mLines:  94.44% ( 34/ 36)[0m
+App\Services\Slack\Handlers\VendorInteractionHandler
+  [37;41mMethods:  14.29% ( 2/14)[0m   [37;41mLines:  36.84% ( 56/152)[0m
+App\Services\Slack\SlackBlockBuilder
+  [30;43mMethods:  77.78% (14/18)[0m   [30;42mLines:  99.55% (1094/1099)[0m
+App\Services\Slack\SlackBlockHelpers
+  [30;42mMethods: 100.00% ( 4/ 4)[0m   [30;42mLines: 100.00% ( 19/ 19)[0m
+App\Services\Slack\SlackInteractionHandler
+  [30;43mMethods:  66.67% ( 4/ 6)[0m   [30;43mLines:  76.79% ( 43/ 56)[0m
+App\Services\Slack\SlackMessenger
+  [30;43mMethods:  61.54% ( 8/13)[0m   [30;42mLines:  96.75% (149/154)[0m
+App\Services\Slack\SlackService
+  [30;43mMethods:  85.71% (12/14)[0m   [30;42mLines:  90.32% ( 84/ 93)[0m

@@ -16,20 +16,20 @@ test.describe('E2E-6.3: Owner-Only Vendor Edit', () => {
     await createVendor(slackPageA, 'Mon Restaurant A', ['pickup']);
     await slackPageA.wait(3000);
 
-    // User A edits it — should succeed
-    const vendorListBtn = slackPageA.page.locator('button:has-text("Voir les restaurants"), button:has-text("restaurants")').first();
-    if (await vendorListBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await vendorListBtn.click();
-      await slackPageA.waitForModal();
+    // Re-open dashboard to access vendor list
+    await openDashboard(slackPageA);
+    await assertModalOpen(slackPageA);
 
-      const editBtn = slackPageA.page.locator('button:has-text("Modifier")').first();
-      if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await editBtn.click();
-        await slackPageA.waitForModal();
-        await slackPageA.fillModalField('name', 'Mon Restaurant A Modifie');
-        await slackPageA.submitModal();
-        await slackPageA.wait(2000);
-      }
+    await slackPageA.clickButton('Restaurants');
+    await slackPageA.waitForModal();
+
+    const editBtn = slackPageA.page.locator('button:has-text("Modifier")').first();
+    if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await editBtn.click({ force: true });
+      await slackPageA.waitForModal();
+      await slackPageA.fillModalField('name', 'Mon Restaurant A Modifie');
+      await slackPageA.submitModal();
+      await slackPageA.wait(2000);
     }
   });
 
@@ -41,27 +41,23 @@ test.describe('E2E-6.3: Owner-Only Vendor Edit', () => {
     await assertModalOpen(slackPageA);
     await createVendor(slackPageA, 'Restaurant de A', ['pickup']);
     await slackPageA.wait(3000);
-    await slackPageA.page.keyboard.press('Escape');
 
-    // User B tries to edit it
+    // User B opens dashboard and navigates to vendor list
     await openDashboard(slackPageB);
     await assertModalOpen(slackPageB);
 
-    const vendorListBtn = slackPageB.page.locator('button:has-text("Voir les restaurants"), button:has-text("restaurants")').first();
-    if (await vendorListBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await vendorListBtn.click();
-      await slackPageB.waitForModal();
+    await slackPageB.clickButton('Restaurants');
+    await slackPageB.waitForModal();
 
-      const editBtn = slackPageB.page.locator('button:has-text("Modifier")').first();
-      if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await editBtn.click();
-        await slackPageB.wait(2000);
+    const editBtn = slackPageB.page.locator('button:has-text("Modifier")').first();
+    if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await editBtn.click({ force: true });
+      await slackPageB.wait(2000);
 
-        // Should receive ephemeral rejection or the edit button may not be available
-        const ephemeral = await slackPageB.getEphemeralText();
-        if (ephemeral) {
-          expect(ephemeral).toContain('modifier');
-        }
+      // Should receive ephemeral rejection or the edit button may not be available
+      const ephemeral = await slackPageB.getEphemeralText();
+      if (ephemeral) {
+        expect(ephemeral).toContain('modifier');
       }
     }
   });

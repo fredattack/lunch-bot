@@ -31,6 +31,8 @@ test.describe('E2E-5.1: Create Vendor', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
+    // Dismiss the dashboard modal to access the kickoff message button
+    await slackPageA.dismissModal();
     await slackPageA.clickButton('Ajouter une enseigne');
     await slackPageA.waitForModal();
 

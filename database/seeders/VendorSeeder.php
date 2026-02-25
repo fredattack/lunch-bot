@@ -39,7 +39,7 @@ class VendorSeeder extends Seeder
                 'organization_id' => $organization->id,
                 'name' => 'Quick',
                 'cuisine_type' => 'Fast food',
-                'fulfillment_types' => json_encode(['pickup']),
+                'fulfillment_types' => json_encode(['pickup', 'delivery']),
                 'allow_individual_order' => false,
                 'url_website' => null,
                 'url_menu' => null,

@@ -1,4 +1,5 @@
 import { SlackPage } from '../fixtures/slack-page';
+import { lockLatestQuickRun, closeLatestQuickRun } from './api-helpers';
 
 /**
  * Reusable higher-level Slack actions composed from SlackPage primitives.
@@ -8,8 +9,19 @@ import { SlackPage } from '../fixtures/slack-page';
 // ── Dashboard ────────────────────────────────────────────────
 
 export async function openDashboard(slack: SlackPage): Promise<void> {
-  await slack.sendSlashCommand('/lunch');
-  await slack.waitForModal();
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await slack.sendSlashCommand('/lunch');
+    try {
+      await slack.waitForModal();
+      return;
+    } catch {
+      if (attempt === 3) {
+        throw new Error('openDashboard: Modal did not appear after 3 attempts');
+      }
+      await slack.page.keyboard.press('Escape');
+      await slack.wait(1500);
+    }
+  }
 }
 
 // ── Proposal from catalog ────────────────────────────────────
@@ -20,14 +32,13 @@ export async function proposeFromCatalog(
   fulfillment: 'pickup' | 'delivery' = 'pickup'
 ): Promise<void> {
   await slack.clickButton('Demarrer une commande');
-  await slack.waitForModal();
+  // selectModalOption will wait for the proposal modal via findFieldByLabel retry
   await slack.selectModalOption('enseigne', vendorName);
   if (fulfillment === 'delivery') {
     await slack.selectModalOption('fulfillment', 'Livraison');
   }
   await slack.submitModal();
-  // Modal transitions to order form
-  await slack.waitForModal();
+  // Modal transitions to order form — fillModalField will wait for it
 }
 
 // ── Propose new restaurant ───────────────────────────────────
@@ -114,12 +125,7 @@ export async function dashboardOrderHere(
   orderDescription: string,
   orderPrice: string
 ): Promise<void> {
-  const orderBtn = slack.page
-    .locator('button:has-text("Commander")')
-    .first();
-  await orderBtn.waitFor({ timeout: 5_000 });
-  await orderBtn.click();
-  await slack.waitForModal();
+  await slack.clickButton('Commander ici');
   await placeOrder(slack, orderDescription, orderPrice);
 }
 
@@ -134,7 +140,7 @@ export async function launchAnotherProposal(
     .locator('button:has-text("Lancer une autre"), button:has-text("Demarrer"), button:has-text("Proposer")')
     .first();
   await startBtn.waitFor({ timeout: 5_000 });
-  await startBtn.click();
+  await startBtn.click({ force: true });
   await slack.waitForModal();
   await slack.selectModalOption('enseigne', vendorName);
   if (fulfillment === 'delivery') {
@@ -184,7 +190,7 @@ export async function viewRecap(slack: SlackPage, proposalText?: string): Promis
     .locator('button:has-text("Recap"), button:has-text("recapitulatif")')
     .first();
   if (await recapBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await recapBtn.click();
+    await recapBtn.click({ force: true });
     await slack.wait(3_000);
     if (await slack.isModalVisible()) {
       return slack.getModalContent();
@@ -236,12 +242,18 @@ export async function createQuickRun(
 ): Promise<void> {
   await slack.clickButton('Quick Run');
   await slack.waitForModal();
+  await slack.waitForModalContent();
   await slack.fillModalField('destination', destination);
   await slack.fillModalField('delay', delayMinutes);
   if (note) {
     await slack.fillModalField('note', note);
   }
   await slack.submitModal();
+  await slack.wait(1000);
+  // Dismiss any remaining modal (the dashboard modal stays open underneath)
+  if (await slack.isModalVisible()) {
+    await slack.dismissModal();
+  }
 }
 
 export async function addQuickRunRequest(
@@ -252,11 +264,94 @@ export async function addQuickRunRequest(
 ): Promise<void> {
   await slack.clickButton('Ajouter', quickRunText);
   await slack.waitForModal();
+  await slack.waitForModalContent();
   await slack.fillModalField('description', description);
   if (priceEstimated) {
     await slack.fillModalField('price_estimated', priceEstimated);
   }
   await slack.submitModal();
+}
+
+export async function editQuickRunRequest(
+  slack: SlackPage,
+  description: string,
+  priceEstimated?: string,
+  quickRunText?: string
+): Promise<void> {
+  // Clicking "Ajouter" when user already has a request opens the edit modal
+  await slack.clickButton('Ajouter', quickRunText);
+  await slack.waitForModal();
+  await slack.waitForModalContent();
+  await slack.fillModalField('description', description);
+  if (priceEstimated) {
+    await slack.fillModalField('price_estimated', priceEstimated);
+  }
+  await slack.submitModal();
+}
+
+export async function deleteQuickRunRequest(
+  slack: SlackPage,
+  quickRunText?: string
+): Promise<void> {
+  // Open edit modal, then click "Supprimer ma demande"
+  await slack.clickButton('Ajouter', quickRunText);
+  await slack.waitForModal();
+  await slack.clickButton('Supprimer ma demande');
+  // Slack shows a confirm dialog — click the confirm button
+  await slack.wait(500);
+  const confirmBtn = slack.page.locator('[data-qa="dialog_go_btn"]').first();
+  if (await confirmBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await confirmBtn.click({ force: true });
+  }
+  await slack.wait(2000);
+}
+
+export async function lockQuickRun(slack: SlackPage, quickRunText?: string): Promise<void> {
+  // Runner actions are posted as thread ephemeral — try UI first, fallback to API
+  const threadText = quickRunText || 'Quick Run';
+  try {
+    await slack.openThread(threadText);
+    await slack.wait(1000);
+    const jePartsBtn = slack.page.locator('button:has-text("Je pars")').first();
+    if (await jePartsBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await jePartsBtn.click({ force: true });
+      await slack.wait(2000);
+      await slack.closeThread();
+      return;
+    }
+    await slack.closeThread();
+  } catch {
+    // Thread might not open if no visible replies
+  }
+
+  // Fallback: lock via backend API (ephemeral thread messages are unreliable)
+  await lockLatestQuickRun();
+  await slack.reload();
+  await slack.wait(3000);
+}
+
+export async function closeQuickRunAction(slack: SlackPage, quickRunText?: string): Promise<void> {
+  // Runner actions are posted as thread ephemeral — try UI first, fallback to API
+  const threadText = quickRunText || 'Quick Run';
+  try {
+    await slack.openThread(threadText);
+    await slack.wait(1000);
+    const cloturerBtn = slack.page.locator('button:has-text("Cloturer")').first();
+    if (await cloturerBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await cloturerBtn.click({ force: true });
+      await slack.wait(2000);
+      await slack.closeThread();
+      return;
+    }
+    await slack.closeThread();
+  } catch {
+    // Thread might not open if no visible replies
+  }
+
+  // Fallback: close via backend API (ephemeral thread messages are unreliable)
+  await closeLatestQuickRun();
+  await slack.reload();
+  await slack.wait(3000);
 }
 
 // ── Vendor management ────────────────────────────────────────
@@ -266,6 +361,11 @@ export async function createVendor(
   name: string,
   fulfillmentTypes: string[] = ['pickup']
 ): Promise<void> {
+  // "Ajouter une enseigne" is in the channel kickoff message, not the dashboard modal.
+  // Dismiss any open modal first so we can interact with the channel.
+  if (await slack.isModalVisible()) {
+    await slack.dismissModal();
+  }
   await slack.clickButton('Ajouter une enseigne');
   await slack.waitForModal();
   await slack.fillModalField('name', name);

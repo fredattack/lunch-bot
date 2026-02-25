@@ -25,21 +25,29 @@ test.describe('E2E-3.3: Delete Order', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
-    const editBtn = slackPageA.page.locator('button:has-text("Modifier")').first();
+    // Scope to the dashboard modal to avoid matching channel buttons
+    const dashboard = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
+    const editBtn = dashboard.locator('button:has-text("Modifier")').first();
     if (await editBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await editBtn.click();
+      await editBtn.click({ force: true });
       await slackPageA.waitForModal();
+
+      // Capture edit modal with delete button
+      const editModal = slackPageA.page.locator('[data-qa="wizard_modal"]').last();
+      await editModal.screenshot({ path: 'Docs/screens/21-modal-edit-with-delete-btn.png' });
 
       // Click delete in the edit modal
       const deleteBtn = slackPageA.page.locator('button:has-text("Supprimer")').first();
       if (await deleteBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await deleteBtn.click();
+        await deleteBtn.click({ force: true });
         await slackPageA.wait(1000);
 
         // Confirm deletion if dialog appears
         const confirmBtn = slackPageA.page.locator('button:has-text("Oui"), button:has-text("Confirmer")').first();
         if (await confirmBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-          await confirmBtn.click();
+          // Capture confirmation dialog
+          await slackPageA.page.screenshot({ path: 'Docs/screens/22-dialog-confirm-delete.png' });
+          await confirmBtn.click({ force: true });
         }
 
         await slackPageA.wait(3000);
@@ -55,7 +63,7 @@ test.describe('E2E-3.3: Delete Order', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
-    const modalContent = await slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal').innerText();
+    const modalContent = await slackPageA.getModalContent();
     // Should not show "Ma commande" anymore
     expect(modalContent).toBeTruthy();
   });

@@ -27,7 +27,7 @@ test.describe('E2E-6.2: Role Restrictions', () => {
 
     const closeBtn = slackPageB.page.locator('button:has-text("Cloturer")').first();
     if (await closeBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await closeBtn.click();
+      await closeBtn.click({ force: true });
       await slackPageB.wait(2000);
       await assertEphemeralVisible(slackPageB, ErrorMessages.ONLY_RESPONSIBLE_CAN_CLOSE);
     }
@@ -52,7 +52,7 @@ test.describe('E2E-6.2: Role Restrictions', () => {
 
     const recapBtn = slackPageB.page.locator('button:has-text("Recap"), button:has-text("recapitulatif")').first();
     if (await recapBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await recapBtn.click();
+      await recapBtn.click({ force: true });
       await slackPageB.wait(2000);
       await assertEphemeralVisible(slackPageB, ErrorMessages.ONLY_RESPONSIBLE_CAN_VIEW);
     }
@@ -77,7 +77,7 @@ test.describe('E2E-6.2: Role Restrictions', () => {
 
     const delegateBtn = slackPageB.page.locator('button:has-text("Deleguer")').first();
     if (await delegateBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await delegateBtn.click();
+      await delegateBtn.click({ force: true });
       await slackPageB.wait(2000);
       await assertEphemeralVisible(slackPageB, ErrorMessages.NO_ROLE_TO_DELEGATE);
     }

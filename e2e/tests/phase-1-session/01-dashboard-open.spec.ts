@@ -18,7 +18,7 @@ test.describe('E2E-1.1: Dashboard Open — State S1', () => {
     await openDashboard(slackPageA);
     await assertModalOpen(slackPageA);
 
-    const modalContent = await slackPageA.page.locator('[data-qa="modal"], .p-block_kit_modal').innerText();
+    const modalContent = await slackPageA.getModalContent();
     expect(modalContent).toContain(DashboardLabels.S1);
   });
 

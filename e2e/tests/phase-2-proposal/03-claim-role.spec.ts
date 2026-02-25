@@ -28,7 +28,7 @@ test.describe('E2E-2.3: Claim Role', () => {
     // User B clicks the orderer claim button on the proposal message
     const claimBtn = slackPageB.page.locator('button:has-text("orderer"), button:has-text("Orderer")').first();
     if (await claimBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await claimBtn.click();
+      await claimBtn.click({ force: true });
       await slackPageB.wait(2000);
     }
   });
@@ -53,7 +53,7 @@ test.describe('E2E-2.3: Claim Role', () => {
 
     const takeChargeBtn = slackPageB.page.locator('button:has-text("Prendre en charge")').first();
     if (await takeChargeBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await takeChargeBtn.click();
+      await takeChargeBtn.click({ force: true });
       await slackPageB.wait(2000);
     }
   });

@@ -53,13 +53,13 @@ test.describe('E2E-9.4: Multi-User Concurrent Actions with 4 Users', () => {
     const results = await Promise.allSettled([
       (async () => {
         if (await claimRunnerB.isVisible({ timeout: 5_000 }).catch(() => false)) {
-          await claimRunnerB.click();
+          await claimRunnerB.click({ force: true });
           await slackPageB.wait(3_000);
         }
       })(),
       (async () => {
         if (await claimRunnerC.isVisible({ timeout: 5_000 }).catch(() => false)) {
-          await claimRunnerC.click();
+          await claimRunnerC.click({ force: true });
           await slackPageC.wait(3_000);
         }
       })(),
@@ -164,7 +164,7 @@ test.describe('E2E-9.4: Multi-User Concurrent Actions with 4 Users', () => {
 
     const delegateBtn = slackPageA.page.locator('button:has-text("Deleguer")').first();
     if (await delegateBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await delegateBtn.click();
+      await delegateBtn.click({ force: true });
       await slackPageA.waitForModal();
       await slackPageA.selectUser('delegate', TestUsers.USER_B.displayName);
       await slackPageA.submitModal();
@@ -177,7 +177,7 @@ test.describe('E2E-9.4: Multi-User Concurrent Actions with 4 Users', () => {
 
     const delegateBtnB = slackPageB.page.locator('button:has-text("Deleguer")').first();
     if (await delegateBtnB.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await delegateBtnB.click();
+      await delegateBtnB.click({ force: true });
       await slackPageB.waitForModal();
       await slackPageB.selectUser('delegate', TestUsers.USER_C.displayName);
       await slackPageB.submitModal();
@@ -244,7 +244,7 @@ test.describe('E2E-9.4: Multi-User Concurrent Actions with 4 Users', () => {
 
     const quickRunBtn = slackPageC.page.locator('button:has-text("Quick Run")').first();
     if (await quickRunBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await quickRunBtn.click();
+      await quickRunBtn.click({ force: true });
       await slackPageC.waitForModal();
       await slackPageC.fillModalField('destination', 'Boulangerie du coin');
       await slackPageC.fillModalField('delay', '30');
@@ -258,7 +258,7 @@ test.describe('E2E-9.4: Multi-User Concurrent Actions with 4 Users', () => {
 
     const addBtn = slackPageAdmin.page.locator('button:has-text("Ajouter")').first();
     if (await addBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await addBtn.click();
+      await addBtn.click({ force: true });
       await slackPageAdmin.waitForModal();
       await slackPageAdmin.fillModalField('description', 'Pain de campagne');
       await slackPageAdmin.fillModalField('price_estimated', '3.50');

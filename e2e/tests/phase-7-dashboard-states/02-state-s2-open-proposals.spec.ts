@@ -26,9 +26,12 @@ test.describe('E2E-7.2: Dashboard State S2 — Open Proposals, No Order', () => 
     await assertModalOpen(slackPageB);
 
     // Should show proposal list with order buttons
-    const modal = slackPageB.page.locator('[data-qa="modal"], .p-block_kit_modal');
+    const modal = slackPageB.page.locator('[data-qa="wizard_modal"]').last();
     const content = await modal.innerText();
     expect(content).toContain(TestVendors.PIZZA_PLACE.name);
+
+    // Capture Dashboard S2
+    await modal.screenshot({ path: 'Docs/screens/18-dashboard-s2-open-proposals.png' });
   });
 
   test('should show "Commander ici" button for each proposal in S2', async ({ slackPageA, slackPageB }) => {

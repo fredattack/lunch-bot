@@ -14,6 +14,10 @@ class ResolveOrganization
 
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->input('type') === 'url_verification') {
+            return $next($request);
+        }
+
         $teamId = $this->extractTeamId($request);
 
         if (! $teamId) {

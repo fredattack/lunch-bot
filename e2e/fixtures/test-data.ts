@@ -5,20 +5,16 @@
 
 export const TestVendors = {
   PIZZA_PLACE: {
-    name: 'Pizza Place Test',
-    cuisineType: 'pizza',
+    name: 'Tatie Crouton',
+    cuisineType: 'Sandwichs',
   },
   SUSHI_BAR: {
-    name: 'Sushi Bar Test',
-    cuisineType: 'sushi',
+    name: 'Quick',
+    cuisineType: 'Fast food',
   },
   BURGER_JOINT: {
-    name: 'Burger Joint Test',
-    cuisineType: 'burger',
-  },
-  THAI_EXPRESS: {
-    name: 'Thai Express Test',
-    cuisineType: 'thai',
+    name: 'Laurent Dumont',
+    cuisineType: null,
   },
 } as const;
 
@@ -109,12 +105,12 @@ export const DashboardLabels = {
 export const ErrorMessages = {
   ORDERS_LOCKED: 'Les commandes sont verrouillees',
   SESSION_CLOSED: 'La journee est cloturee',
-  DESCRIPTION_REQUIRED: 'Description requise',
+  DESCRIPTION_REQUIRED: 'Veuillez remplir ce champ obligatoire',
   PRICE_ESTIMATED_INVALID: 'Prix estime invalide',
   PRICE_FINAL_INVALID: 'Prix final invalide',
-  VENDOR_NAME_REQUIRED: 'Nom du restaurant requis',
-  FULFILLMENT_REQUIRED: 'Au moins un type doit etre selectionne',
-  DESTINATION_REQUIRED: 'Destination requise',
+  VENDOR_NAME_REQUIRED: 'Veuillez remplir ce champ obligatoire',
+  FULFILLMENT_REQUIRED: 'Veuillez remplir ce champ obligatoire',
+  DESTINATION_REQUIRED: 'Veuillez remplir ce champ obligatoire',
   DELAY_INVALID: 'Le delai doit etre entre 1 et 120 minutes',
   VENDOR_INVALID: 'Enseigne invalide',
   ROLE_ALREADY_ASSIGNED: 'Role deja attribue',
